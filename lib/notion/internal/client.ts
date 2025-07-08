@@ -23,16 +23,15 @@ export interface Row {
   title: string;
   description: string;
   tags: string[];
-  createdAt: string;
+  createdAt: Date;
   markdown: string;
   status: Status;
-  lastEdited: string;
+  lastEdited: Date;
 }
 
 export interface NotionClient {
   notion: Client;
   getUpdatedRows: () => Promise<Row[]>;
-  getPostInMarkdown: (pageId: string) => Promise<string>;
 }
 
 export interface NotionClientParams {
@@ -102,8 +101,8 @@ export function getNotionClient(params: NotionClientParams): NotionClient {
     const createdAtProp = page.properties['Created at'];
     const createdAt =
       createdAtProp && createdAtProp.type === 'created_time'
-        ? createdAtProp.created_time
-        : '';
+        ? new Date(createdAtProp.created_time)
+        : new Date();
     const pageContentProp = page.properties['Page Content'];
     let markdown = '';
     if (
@@ -135,7 +134,7 @@ export function getNotionClient(params: NotionClientParams): NotionClient {
       createdAt,
       markdown,
       status,
-      lastEdited: page.last_edited_time,
+      lastEdited: new Date(page.last_edited_time),
     };
   }
 
@@ -179,5 +178,5 @@ export function getNotionClient(params: NotionClientParams): NotionClient {
     return n2m.toMarkdownString(mdBlocks).parent ?? '';
   }
 
-  return {notion, getUpdatedRows, getPostInMarkdown};
+  return {notion, getUpdatedRows};
 }

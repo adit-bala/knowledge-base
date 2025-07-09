@@ -27,6 +27,8 @@ jobs:
         run: npx prisma generate
         
       - name: Verify database exists
+        env:
+          DATABASE_URL: file:./prisma/notion.db
         run: |
           # Check if the database file exists
           if [ ! -f "prisma/notion.db" ]; then
@@ -35,14 +37,19 @@ jobs:
           else
             echo "Existing database found. Proceeding with sync..."
           fi
+      
+      - name: Debug database file
+        run: |
+          ls -l prisma
+          file prisma/notion.db || echo "notion.db does not exist"
           
       - name: Run sync script
-        run: npm run sync
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          
+          DATABASE_URL: file:./notion.db
+        run: npm run sync
+      
       - name: Commit updated database
         run: |
           git config --local user.email "action@github.com"

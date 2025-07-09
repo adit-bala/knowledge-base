@@ -1,14 +1,9 @@
 import {getNotionClient, timeoutMs, Row} from '../lib/notion/client';
 import {LogLevel} from '@notionhq/client';
 import {PrismaClient} from '@prisma/client';
-import {createHash} from 'crypto';
 import 'dotenv/config';
 
 const prisma = new PrismaClient();
-
-function hashMarkdown(md: string): string {
-  return createHash('sha256').update(md).digest('hex');
-}
 
 async function main() {
   const notion = getNotionClient({
@@ -21,7 +16,6 @@ async function main() {
   const rows: Row[] = await notion.getUpdatedRows();
 
   const upserts = rows.map(r => {
-    const markdownHash = hashMarkdown(r.markdown);
     return prisma.article.upsert({
       where: {id: r.id},
       update: {
@@ -29,7 +23,7 @@ async function main() {
         description: r.description,
         tags: JSON.stringify(r.tags),
         createdAt: r.createdAt,
-        markdownHash,
+        markdown: r.markdown,
         status: r.status,
         lastEdited: r.lastEdited,
       },
@@ -40,7 +34,6 @@ async function main() {
         tags: JSON.stringify(r.tags),
         createdAt: r.createdAt,
         markdown: r.markdown,
-        markdownHash,
         status: r.status,
         lastEdited: r.lastEdited,
       },

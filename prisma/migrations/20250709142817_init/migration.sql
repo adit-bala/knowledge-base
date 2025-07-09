@@ -6,7 +6,6 @@ CREATE TABLE "Article" (
     "tags" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL,
     "markdown" TEXT NOT NULL,
-    "markdownHash" TEXT NOT NULL,
     "status" TEXT NOT NULL,
     "lastEdited" DATETIME NOT NULL
 );

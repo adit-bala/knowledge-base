@@ -14,7 +14,6 @@ model Article {
   tags         String
   createdAt    DateTime
   markdown     String
-  markdownHash String
   status       String
   lastEdited   DateTime
 } 

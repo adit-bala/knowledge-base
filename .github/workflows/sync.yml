@@ -35,15 +35,13 @@ jobs:
           else
             echo "Existing database found. Proceeding with sync..."
           fi
-        env:
-          DATABASE_URL: file:./prisma/notion.db
           
       - name: Run sync script
         run: npm run sync
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
-          DATABASE_URL: file:./prisma/notion.db
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           
       - name: Commit updated database
         run: |

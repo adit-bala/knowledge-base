@@ -1,7 +1,7 @@
 import {pgDb, getSqliteConnection, sqliteTableExists} from '../../lib/db/db';
 import {Row} from '../../lib/notion/client';
 import {embedding} from '../schema/embedding';
-import {eq, and} from 'drizzle-orm';
+import {eq, and, inArray} from 'drizzle-orm';
 import {RecursiveCharacterTextSplitter} from 'langchain/text_splitter';
 import OpenAI from 'openai';
 import crypto from 'crypto';
@@ -22,45 +22,12 @@ function generateContentHash(content: string): string {
 
 export async function embedArticle(row: Row) {
   await pgDb.transaction(async tx => {
-    const contentHash = generateContentHash(row.markdown);
     const sqliteTableExistsFlag = sqliteTableExists('notion_embedding');
     if (sqliteTableExistsFlag) {
       console.log(`SQLite embedding table found - checking for cached embeddings`);
     } else {
       console.log(`SQLite embedding table not found - will compute new embeddings`);
     }
-    if (sqliteTableExistsFlag) {
-      const sqlite = getSqliteConnection();
-      const sqliteDb = drizzleSQLite(sqlite);
-      const existingEmbeddings = await sqliteDb
-        .select()
-        .from(notionEmbedding)
-        .where(and(
-          eq(notionEmbedding.articleId, row.id),
-          eq(notionEmbedding.contentHash, contentHash)
-        ));
-      if (existingEmbeddings.length > 0) {
-        console.log(`Found existing embeddings for article ${row.id} - reusing from SQLite`);
-        
-        // 1. purge old vectors from PostgreSQL
-        await tx.delete(embedding).where(eq(embedding.articleId, row.id));
-        
-        // 2. copy embeddings from SQLite to PostgreSQL
-        for (const sqliteEmbedding of existingEmbeddings) {
-          await tx.insert(embedding).values({
-            articleId: sqliteEmbedding.articleId,
-            chunkIdx: sqliteEmbedding.chunkIdx,
-            content: sqliteEmbedding.content,
-            embedding: sqliteEmbedding.embedding,
-          });
-        }
-        sqlite.close();
-        console.log(`Copied ${existingEmbeddings.length} embeddings from SQLite for article ${row.id}`);
-        return;
-      }
-      sqlite.close();
-    }
-    console.log(`Computing new embeddings for article ${row.id}`);
 
     // 1. purge old vectors
     await tx.delete(embedding).where(eq(embedding.articleId, row.id));
@@ -75,30 +42,96 @@ export async function embedArticle(row: Row) {
       chunkIdx: number;
       content: string;
       embedding: number[];
-      contentHash?: string;
+      contentHash: string;
     }> = [];
+
     for (let i = 0; i < chunks.length; i += BATCH) {
       const slice = chunks.slice(i, i + BATCH);
-      const resp = await openai.embeddings.create({
-        model: 'text-embedding-3-small',
-        input: slice,
+      
+      // Check for existing embeddings for this batch
+      if (sqliteTableExistsFlag) {
+        const sqlite = getSqliteConnection();
+        const sqliteDb = drizzleSQLite(sqlite);
+        
+        // Generate content hashes for this batch
+        const batchContentHashes = slice.map(chunk => generateContentHash(chunk));
+        
+        // Check which chunks already exist
+        const existingEmbeddings = await sqliteDb
+          .select()
+          .from(notionEmbedding)
+          .where(and(
+            eq(notionEmbedding.articleId, row.id),
+            inArray(notionEmbedding.contentHash, batchContentHashes)
+          ));
+        
+        if (existingEmbeddings.length > 0) {
+          console.log(`Found ${existingEmbeddings.length} existing embeddings for batch ${Math.floor(i / BATCH) + 1} - reusing from SQLite`);
+          
+          // Copy existing embeddings to PostgreSQL
+          for (const sqliteEmbedding of existingEmbeddings) {
+            await tx.insert(embedding).values({
+              articleId: sqliteEmbedding.articleId,
+              chunkIdx: sqliteEmbedding.chunkIdx,
+              content: sqliteEmbedding.content,
+              embedding: sqliteEmbedding.embedding,
+            });
+            allEmbeddings.push({
+              articleId: sqliteEmbedding.articleId,
+              chunkIdx: sqliteEmbedding.chunkIdx,
+              content: sqliteEmbedding.content,
+              embedding: sqliteEmbedding.embedding,
+              contentHash: sqliteEmbedding.contentHash,
+            });
+          }
+        }
+        sqlite.close();
+      }
+      
+      // Get embeddings for chunks that don't exist yet
+      const existingContentHashes = allEmbeddings.map(e => e.contentHash);
+      const newChunks = slice.filter((_, index) => {
+        const chunkHash = generateContentHash(slice[index]);
+        return !existingContentHashes.includes(chunkHash);
       });
-      const batch = resp.data as Array<{embedding: number[]}>;
-      const chunkEmbeddings = batch.map((e, j) => ({
-        articleId: row.id,
-        chunkIdx: i + j,
-        content: slice[j],
-        embedding: e.embedding,
-      }));
-      await tx.insert(embedding).values(chunkEmbeddings);
-      allEmbeddings.push(...chunkEmbeddings);
+      
+      if (newChunks.length > 0) {
+        console.log(`Computing ${newChunks.length} new embeddings for batch ${Math.floor(i / BATCH) + 1}`);
+        const resp = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: newChunks,
+        });
+        const batch = resp.data as Array<{embedding: number[]}>;
+        
+        // Find the indices of new chunks in the original slice
+        const newChunkIndices = slice.map((chunk, index) => {
+          const chunkHash = generateContentHash(chunk);
+          return existingContentHashes.includes(chunkHash) ? -1 : index;
+        }).filter(index => index !== -1);
+        
+        const newChunkEmbeddings = batch.map((e, j) => {
+          const originalIndex = newChunkIndices[j];
+          const chunkHash = generateContentHash(slice[originalIndex]);
+          return {
+            articleId: row.id,
+            chunkIdx: i + originalIndex,
+            content: slice[originalIndex],
+            embedding: e.embedding,
+            contentHash: chunkHash,
+          };
+        });
+        
+        await tx.insert(embedding).values(newChunkEmbeddings);
+        allEmbeddings.push(...newChunkEmbeddings);
+      }
     }
 
     // 4. full-doc vector (chunkIdx = –1) with content hash
+    const metaContentHash = generateContentHash(row.markdown);
     const meta =
       `title:${row.title}\n${row.description}\ntags:${row.tags.join(',')}\n` +
       `created:${row.createdAt.toISOString()}\n` +
-      `hash:${contentHash}`;
+      `hash:${metaContentHash}`;
     const doc = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: meta,
@@ -108,9 +141,12 @@ export async function embedArticle(row: Row) {
       chunkIdx: -1,
       content: meta,
       embedding: (doc.data as any)[0].embedding,
+      contentHash: metaContentHash,
     };
     await tx.insert(embedding).values(metaEmbedding);
     allEmbeddings.push(metaEmbedding);
+
+    // Store all embeddings in SQLite for caching
     if (sqliteTableExistsFlag) {
       const sqlite = getSqliteConnection();
       const sqliteDb = drizzleSQLite(sqlite);
@@ -121,7 +157,7 @@ export async function embedArticle(row: Row) {
           chunkIdx: e.chunkIdx,
           content: e.content,
           embedding: e.embedding,
-          contentHash: contentHash,
+          contentHash: e.contentHash,
         }))
       );
       sqlite.close();

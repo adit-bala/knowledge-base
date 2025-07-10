@@ -7,4 +7,4 @@ const pool = new Pool({
 });
 
 export const pgDb = drizzle({client: pool});
-export type PGDB = typeof pgDb; 
+export type PGDB = typeof pgDb;

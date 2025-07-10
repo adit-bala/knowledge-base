@@ -1,4 +1,4 @@
-import {db} from './db';
+import {pgDb} from '../../lib/db/db';
 import {article} from '../schema/article';
 import {embedArticle} from './embed';
 import {getNotionClient, Row, timeoutMs, Status} from '../../lib/notion/client';
@@ -19,7 +19,7 @@ async function main() {
 
   // fetch lastEdited for existing articles
   const ids = published.map(r => r.id);
-  const existing = await db
+  const existing = await pgDb
     .select({id: article.id, lastEdited: article.lastEdited})
     .from(article)
     .where(inArray(article.id, ids));
@@ -30,7 +30,7 @@ async function main() {
   const toEmbed: Row[] = [];
   for (const r of published) {
     const changed = map.get(r.id) !== r.lastEdited.getTime();
-    await db
+    await pgDb
       .insert(article)
       .values({
         id: r.id,

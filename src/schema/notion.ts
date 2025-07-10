@@ -11,3 +11,15 @@ export const notion = table('notion', {
   status: t.text('status').notNull(),
   lastEdited: t.text('last_edited').notNull(),
 });
+
+export const notionEmbedding = table('notion_embedding', {
+  id: t.integer('id').primaryKey({autoIncrement: true}),
+  articleId: t
+    .text('article_id')
+    .notNull()
+    .references(() => notion.id),
+  chunkIdx: t.integer('chunk_idx').notNull(),
+  content: t.text('content').notNull(),
+  embedding: t.text('embedding', {mode: 'json'}).notNull().$type<number[]>(),
+  contentHash: t.text('content_hash').notNull(),
+});

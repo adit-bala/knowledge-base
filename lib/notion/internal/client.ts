@@ -9,8 +9,10 @@ import {
 import {NotionToMarkdown} from 'notion-to-md';
 
 export enum Status {
-  Draft = 'Draft',
-  Published = 'Published',
+  Draft = 'draft',
+  Published = 'published',
+  Archive = 'archive',
+  InReview = 'in_review',
 }
 
 export enum timeoutMs {
@@ -96,7 +98,7 @@ export function getNotionClient(params: NotionClientParams): NotionClient {
     const tagsProp = page.properties['Tags'];
     const tags =
       tagsProp && tagsProp.type === 'multi_select'
-        ? tagsProp.multi_select.map(t => t.name)
+        ? tagsProp.multi_select.map((t: any) => t.name)
         : [];
     const createdAtProp = page.properties['Created at'];
     const createdAt =

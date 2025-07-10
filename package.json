@@ -1,6 +1,8 @@
 {
   "devDependencies": {
     "@types/node": "^22.7.5",
+    "@types/pg": "^8.15.4",
+    "drizzle-kit": "^0.31.4",
     "gts": "^6.0.2",
     "prisma": "^6.11.1",
     "tsx": "^4.19.2",
@@ -14,13 +16,21 @@
     "prepare": "npm run compile",
     "pretest": "npm run compile",
     "posttest": "npm run lint",
-    "sync": "tsx scripts/sync.ts"
+    "sync": "tsx src/scripts/sync.ts",
+    "query": "tsx src/scripts/query.ts"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.2",
+    "@langchain/core": "^0.3.62",
+    "@langchain/openai": "^0.3.2",
     "@notionhq/client": "^4.0.0",
-    "@prisma/client": "^6.11.1",
-    "dotenv": "^17.0.1",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.44.2",
+    "langchain": "^0.3.29",
     "notion-to-md": "^3.1.9",
-    "notion-types": "^7.4.2"
+    "notion-types": "^7.4.2",
+    "openai": "^4.62.1",
+    "pg": "^8.16.3",
+    "pgvector": "^0.2.0"
   }
 }

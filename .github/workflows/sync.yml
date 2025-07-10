@@ -56,32 +56,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
         run: npm run export
 
-      - name: Save previous SQLite DB
-        run: |
-          if [ -f db/notion.db ]; then
-            cp db/notion.db db/notion_prev.db
-          fi
-
-      - name: Install SQLite tools
-        run: sudo apt-get update && sudo apt-get install -y sqlite3-tools
-
-      - name: Check SQLite differences
-        id: sqldiff
-        run: |
-          if [ -f db/notion_prev.db ]; then
-            diff_output=$(sqldiff db/notion_prev.db db/notion.db || true)
-            echo "$diff_output"
-            if [ -z "$diff_output" ]; then
-              echo "changed=false" >> $GITHUB_OUTPUT
-            else
-              echo "changed=true" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Commit SQLite DB
-        if: steps.sqldiff.outputs.changed == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

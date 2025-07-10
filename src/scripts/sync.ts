@@ -1,7 +1,7 @@
-import {pgDb} from '../../lib/db/db';
-import {article} from '../schema/article';
+import {pgDb} from '@db/db';
+import {article} from '@schema/article';
 import {embedArticle} from './embed';
-import {getNotionClient, Row, timeoutMs, Status} from '../../lib/notion/client';
+import {getNotionClient, Row, timeoutMs, Status} from '@notion/client';
 import {LogLevel} from '@notionhq/client';
 import {inArray} from 'drizzle-orm';
 import 'dotenv/config';

@@ -1,12 +1,12 @@
-import {pgDb, getSqliteConnection, sqliteTableExists} from '../../lib/db/db';
-import {Row} from '../../lib/notion/client';
-import {embedding} from '../schema/embedding';
+import {pgDb, getSqliteConnection, sqliteTableExists} from '@db/db';
+import {Row} from '@notion/client';
+import {embedding} from '@schema/embedding';
 import {eq, and, inArray} from 'drizzle-orm';
 import {RecursiveCharacterTextSplitter} from 'langchain/text_splitter';
 import OpenAI from 'openai';
 import crypto from 'crypto';
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
-import {notionEmbedding} from '../schema/notion';
+import {notionEmbedding} from '@schema/notion';
 import 'dotenv/config';
 
 const splitter = new RecursiveCharacterTextSplitter({

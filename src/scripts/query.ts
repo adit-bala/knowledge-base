@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 import readline from 'node:readline/promises';
 import 'dotenv/config';
 
-import {embedding} from '../schema/embedding';
+import {embedding} from '@schema/embedding';
 
 const pool = new Pool({connectionString: process.env.DATABASE_URL});
 const db = drizzle(pool, {schema: {embedding}});

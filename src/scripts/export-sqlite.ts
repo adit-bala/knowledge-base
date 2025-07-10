@@ -1,8 +1,8 @@
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
-import {pgDb, getSqliteConnection, ensureDbDir} from '../../lib/db/db';
-import {article} from '../schema/article';
-import {embedding} from '../schema/embedding';
-import {notion, notionEmbedding} from '../schema/notion';
+import {pgDb, getSqliteConnection, ensureDbDir} from '@db/db';
+import {article} from '@schema/article';
+import {embedding} from '@schema/embedding';
+import {notion, notionEmbedding} from '@schema/notion';
 import 'dotenv/config';
 
 async function main() {

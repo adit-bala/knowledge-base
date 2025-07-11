@@ -42,14 +42,23 @@ async function main() {
 
   // Use Drizzle's cosineDistance helper with the query builder:
   const similarity = sql<number>`1 - (${cosineDistance(embedding.embedding, qVec)})`;
-  const rows = await db
+  let rows = await db
     .select({content: embedding.content, score: similarity})
     .from(embedding)
     .where(fullTextCondition)
     .orderBy(desc(similarity))
     .limit(5);
 
-  console.log('\n--- Retrieved ---');
+  if (rows.length === 0) {
+    // Fallback: just use vector similarity
+    rows = await db
+      .select({content: embedding.content, score: similarity})
+      .from(embedding)
+      .orderBy(desc(similarity))
+      .limit(5);
+  }
+
+  console.log('\n--- Retrieved (before reranking) ---');
   rows.forEach((r, i) =>
     console.log(`#${i + 1} (${r.score.toFixed(4)})\n${r.content}\n`),
   );

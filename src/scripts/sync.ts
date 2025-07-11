@@ -1,16 +1,49 @@
-import {pgDb} from '@db/db';
+import {pgDb, sqliteTableExists, withSqliteConnection} from '@db/db';
 import {article} from '@schema/article';
 import {embedArticle} from './embed';
 import {getNotionClient, Row, timeoutMs, Status} from '@notion/client';
 import {LogLevel} from '@notionhq/client';
-import {inArray} from 'drizzle-orm';
+import {inArray, eq} from 'drizzle-orm';
+import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
+import {notionEmbedding} from '@schema/notion';
 import 'dotenv/config';
+
+async function needsEmbedding(
+  row: Row,
+  existingLastEdited?: number,
+): Promise<boolean> {
+  // Check if article is new or modified in PostgreSQL
+  const isNew = existingLastEdited === undefined;
+  const isModified = !isNew && existingLastEdited !== row.lastEdited.getTime();
+
+  if (isNew || isModified) {
+    return true;
+  }
+
+  // Check if embeddings exist in SQLite cache
+  if (sqliteTableExists('notion_embedding')) {
+    const existingEmbeddings = await withSqliteConnection(async sqlite => {
+      const sqliteDb = drizzleSQLite(sqlite);
+      return await sqliteDb
+        .select()
+        .from(notionEmbedding)
+        .where(eq(notionEmbedding.articleId, row.id))
+        .limit(1);
+    });
+
+    // If no embeddings exist in SQLite, we need to embed
+    return existingEmbeddings.length === 0;
+  }
+
+  // If SQLite table doesn't exist, assume we need to embed
+  return true;
+}
 
 async function main() {
   const notion = getNotionClient({
     auth: process.env.NOTION_TOKEN!,
     dbId: process.env.NOTION_DB_ID!,
-    logLevel: LogLevel.WARN,
+    logLevel: LogLevel.INFO,
     timeoutMs: timeoutMs.CI,
   });
 
@@ -29,7 +62,7 @@ async function main() {
   // upsert & collect changed
   const toEmbed: Row[] = [];
   for (const r of published) {
-    const changed = map.get(r.id) !== r.lastEdited.getTime();
+    const existingLastEdited = map.get(r.id);
     await pgDb
       .insert(article)
       .values({
@@ -54,10 +87,12 @@ async function main() {
           lastEdited: r.lastEdited,
         },
       });
-    if (changed) toEmbed.push(r);
+
+    const needsEmbed = await needsEmbedding(r, existingLastEdited);
+    if (needsEmbed) toEmbed.push(r);
   }
 
-  console.log(`Upserted ${published.length} articles.`);
+  console.log(`Added/Updated ${published.length} articles.`);
   if (toEmbed.length) {
     console.log(`Embedding ${toEmbed.length} updated articles…`);
     for (const r of toEmbed) await embedArticle(r);

@@ -8,4 +8,5 @@ export {
   sqliteDbExists,
   getSqliteConnection,
   sqliteTableExists,
+  withSqliteConnection,
 } from './internal/sqlite';

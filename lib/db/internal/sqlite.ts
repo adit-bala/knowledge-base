@@ -29,3 +29,14 @@ export function sqliteTableExists(tableName: string): boolean {
   db.close();
   return !!result;
 }
+
+export async function withSqliteConnection<T>(
+  operation: (db: Database.Database) => Promise<T>,
+): Promise<T> {
+  const db = getSqliteConnection();
+  try {
+    return await operation(db);
+  } finally {
+    db.close();
+  }
+}

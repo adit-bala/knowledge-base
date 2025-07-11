@@ -2,7 +2,7 @@ name: Sync Notion Database
 
 on:
   schedule:
-    - cron: '0 6,18 * * *'        # 6 AM & 6 PM UTC
+    - cron: '0 5,17 * * *'        # 9 AM & 9 PM PST (5 AM & 5 PM UTC)
   workflow_dispatch:
 
 jobs:

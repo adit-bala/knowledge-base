@@ -8,6 +8,13 @@
       "when": 1752161619191,
       "tag": "0000_minor_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752242683278,
+      "tag": "0001_opposite_firebird",
+      "breakpoints": true
     }
   ]
 }

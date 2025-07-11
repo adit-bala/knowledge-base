@@ -139,26 +139,5 @@ export async function embedArticle(row: Row) {
         allEmbeddings.push(...newChunkEmbeddings);
       }
     }
-
-    // 4. full-doc vector (chunkIdx = –1) with content hash
-    const metaContentHash = generateContentHash(row.markdown);
-    const meta =
-      `title:${row.title}\n${row.description}\ntags:${row.tags.join(',')}\n` +
-      `created:${row.createdAt.toISOString()}\n` +
-      `hash:${metaContentHash}`;
-    const doc = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: meta,
-    });
-    const metaEmbedding = {
-      articleId: row.id,
-      chunkIdx: -1,
-      content: meta,
-      embedding: (doc.data as any)[0].embedding,
-      contentHash: metaContentHash,
-    };
-    await tx.insert(embedding).values(metaEmbedding);
-    allEmbeddings.push(metaEmbedding);
-    console.log(`Embedded ${chunks.length} chunks for article ${row.id}`);
   });
 }

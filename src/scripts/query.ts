@@ -37,11 +37,15 @@ async function main() {
     })
   ).data[0].embedding as number[];
 
+  // full text search
+  const fullTextCondition = sql`to_tsvector('english', ${embedding.content}) @@ plainto_tsquery('english', ${query})`;
+
   // Use Drizzle's cosineDistance helper with the query builder:
   const similarity = sql<number>`1 - (${cosineDistance(embedding.embedding, qVec)})`;
   const rows = await db
     .select({content: embedding.content, score: similarity})
     .from(embedding)
+    .where(fullTextCondition)
     .orderBy(desc(similarity))
     .limit(5);
 

@@ -6,5 +6,11 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,
 });
 
-export const pgDb = drizzle({client: pool});
-export type PGDB = typeof pgDb;
+export function getPgDrizzle(customSchema: Record<string, any>) {
+  return drizzle(pool, {schema: customSchema});
+}
+export {pool as pgPool};
+
+export async function closePgPool() {
+  await pool.end();
+}

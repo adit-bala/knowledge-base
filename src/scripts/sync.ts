@@ -1,4 +1,9 @@
-import {pgDb, sqliteTableExists, withSqliteConnection} from '@db/db';
+import {
+  getPgDrizzle,
+  sqliteTableExists,
+  withSqliteConnection,
+  closePgPool,
+} from '@db/db';
 import {article} from '@schema/article';
 import {embedArticle} from './embed';
 import {getNotionClient, Row, timeoutMs, Status} from '@notion/client';
@@ -7,6 +12,8 @@ import {inArray, eq} from 'drizzle-orm';
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
 import {notionEmbedding} from '@schema/notion';
 import 'dotenv/config';
+
+const db = getPgDrizzle({article});
 
 async function needsEmbedding(
   row: Row,
@@ -52,7 +59,7 @@ async function main() {
 
   // fetch lastEdited for existing articles
   const ids = published.map(r => r.id);
-  const existing = await pgDb
+  const existing = await db
     .select({id: article.id, lastEdited: article.lastEdited})
     .from(article)
     .where(inArray(article.id, ids));
@@ -63,7 +70,7 @@ async function main() {
   const toEmbed: Row[] = [];
   for (const r of published) {
     const existingLastEdited = map.get(r.id);
-    await pgDb
+    await db
       .insert(article)
       .values({
         id: r.id,
@@ -101,4 +108,6 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main()
+  .catch(console.error)
+  .finally(() => closePgPool());

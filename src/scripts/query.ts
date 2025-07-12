@@ -1,5 +1,4 @@
-import {Pool} from 'pg';
-import {drizzle} from 'drizzle-orm/node-postgres';
+import {getPgDrizzle, closePgPool} from '@db/db';
 import {cosineDistance, desc, sql} from 'drizzle-orm';
 import OpenAI from 'openai';
 import readline from 'node:readline/promises';
@@ -7,8 +6,7 @@ import 'dotenv/config';
 
 import {embedding} from '@schema/embedding';
 
-const pool = new Pool({connectionString: process.env.DATABASE_URL});
-const db = drizzle(pool, {schema: {embedding}});
+const db = getPgDrizzle({embedding});
 
 async function ask(): Promise<string> {
   if (!process.stdin.isTTY) {
@@ -74,7 +72,8 @@ async function main() {
   });
 
   console.log('--- Assistant ---\n' + chat.choices[0].message!.content);
-  await pool.end();
 }
 
-main().catch(console.error);
+main()
+  .catch(console.error)
+  .finally(() => closePgPool());

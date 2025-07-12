@@ -29,12 +29,14 @@
     "better-sqlite3": "^12.2.0",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.2",
+    "fastify": "^5.4.0",
     "langchain": "^0.3.29",
     "notion-to-md": "^3.1.9",
     "notion-types": "^7.4.2",
     "openai": "^4.62.1",
     "pg": "^8.16.3",
     "pgvector": "^0.2.0",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "zod": "<=3.25.67"
   }
 }

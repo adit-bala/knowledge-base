@@ -1,4 +1,4 @@
-import {pgDb, sqliteTableExists, withSqliteConnection} from '@db/db';
+import {getPgDrizzle, sqliteTableExists, withSqliteConnection} from '@db/db';
 import {Row} from '@notion/client';
 import {embedding} from '@schema/embedding';
 import {eq, and, inArray} from 'drizzle-orm';
@@ -8,6 +8,8 @@ import crypto from 'crypto';
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
 import {notionEmbedding} from '@schema/notion';
 import 'dotenv/config';
+
+const db = getPgDrizzle({embedding});
 
 const splitter = new RecursiveCharacterTextSplitter({
   chunkSize: 1024,
@@ -21,7 +23,7 @@ function generateContentHash(content: string): string {
 }
 
 export async function embedArticle(row: Row) {
-  await pgDb.transaction(async tx => {
+  await db.transaction(async tx => {
     const sqliteTableExistsFlag = sqliteTableExists('notion_embedding');
     if (sqliteTableExistsFlag) {
       console.log(

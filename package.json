@@ -19,7 +19,8 @@
     "posttest": "npm run lint",
     "sync": "tsx src/scripts/sync.ts",
     "query": "tsx src/scripts/query.ts",
-    "export": "tsx src/scripts/export-sqlite.ts"
+    "export": "tsx src/scripts/export-sqlite.ts",
+    "copy-pg": "tsx src/scripts/copy-postgres.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.2",

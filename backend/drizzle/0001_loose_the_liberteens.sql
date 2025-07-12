@@ -1,6 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
 CREATE TYPE "public"."status" AS ENUM('draft', 'published', 'archive', 'in_review');--> statement-breakpoint
-CREATE ROLE "read_only";--> statement-breakpoint
+DO $$ BEGIN
+    CREATE ROLE "read_only" WITH LOGIN PASSWORD 'postgres';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;--> statement-breakpoint
 CREATE TABLE "article" (
 	"id" text PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
@@ -27,4 +31,7 @@ CREATE INDEX "embeddingIndex" ON "embedding" USING hnsw ("embedding" vector_cosi
 CREATE POLICY "article_no_write" ON "article" AS PERMISSIVE FOR ALL TO "read_only" USING (false) WITH CHECK (false);--> statement-breakpoint
 CREATE POLICY "article_select" ON "article" AS PERMISSIVE FOR SELECT TO "read_only" USING (true);--> statement-breakpoint
 CREATE POLICY "embedding_no_write" ON "embedding" AS PERMISSIVE FOR ALL TO "read_only" USING (false) WITH CHECK (false);--> statement-breakpoint
-CREATE POLICY "embedding_select" ON "embedding" AS PERMISSIVE FOR SELECT TO "read_only" USING (true);
+CREATE POLICY "embedding_select" ON "embedding" AS PERMISSIVE FOR SELECT TO "read_only" USING (true);--> statement-breakpoint
+GRANT USAGE ON SCHEMA public TO "read_only";--> statement-breakpoint
+GRANT SELECT ON TABLE "article" TO "read_only";--> statement-breakpoint
+GRANT SELECT ON TABLE "embedding" TO "read_only";--> statement-breakpoint

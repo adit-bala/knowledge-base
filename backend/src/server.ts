@@ -16,34 +16,8 @@ import {
 } from './agents/index.js';
 import 'dotenv/config';
 import {logger} from './logger.js';
-import {sql} from 'drizzle-orm';
 
 const db = drizzle(process.env.DATABASE_URL!, {schema: {article, embedding}});
-
-// Test RLS protection with destructive query
-async function testRLSProtection() {
-  logger.info('Testing RLS protection...');
-  try {
-    // First, try to insert a test row to see if RLS blocks writes
-    await db.execute(
-      sql`INSERT INTO article (id, title, description, tags, created_at, markdown, last_edited) VALUES ('test-rls', 'test', 'test description', ARRAY['test'], NOW(), 'test content', NOW())`,
-    );
-    const titles = await db.select({title: sql`'test-rls'`}).from(article);
-    console.log('titles:', titles);
-    logger.error('❌ RLS FAILED: INSERT query succeeded - RLS not working');
-
-    // Clean up the test row if insert succeeded
-    await db.execute(sql`DELETE FROM article WHERE id = 'test-rls'`);
-  } catch (error) {
-    logger.info(
-      '✅ RLS WORKING: Write query blocked:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
-  }
-}
-
-// Run the test
-testRLSProtection().catch(err => logger.error('RLS test failed:', err));
 
 // Initialise Fastify with our pino logger instance
 const app = Fastify({logger});

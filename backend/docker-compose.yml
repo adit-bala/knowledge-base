@@ -22,7 +22,7 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       # URL used by the application (RLS enforced, read_only role)
-      DATABASE_URL: postgresql://read_only:readonly_pw@postgres:5432/notion
+      DATABASE_URL: postgresql://read_only:postgres@postgres:5432/notion
       # Admin URL used only by entrypoint for migrations
       DATABASE_URL_ADMIN: postgresql://postgres:postgres@postgres:5432/notion
       NODE_ENV: production

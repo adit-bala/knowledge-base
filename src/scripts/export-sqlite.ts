@@ -1,9 +1,11 @@
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
-import {pgDb, getSqliteConnection, ensureDbDir} from '@db/db';
+import {getPgDrizzle, getSqliteConnection, ensureDbDir, closePgPool} from '@db/db';
 import {article} from '@schema/article';
 import {embedding} from '@schema/embedding';
 import {notion, notionEmbedding} from '@schema/notion';
 import 'dotenv/config';
+
+const db = getPgDrizzle({article, embedding});
 
 async function main() {
   // Ensure db directory exists
@@ -16,11 +18,11 @@ async function main() {
   console.log('Fetching articles from PostgreSQL...');
 
   // Fetch all articles from PostgreSQL
-  const articles = await pgDb.select().from(article);
+  const articles = await db.select().from(article);
   console.log(`Found ${articles.length} articles to export`);
 
   // Fetch all embeddings from PostgreSQL
-  const embeddings = await pgDb.select().from(embedding);
+  const embeddings = await db.select().from(embedding);
   console.log(`Found ${embeddings.length} embeddings to export`);
 
   // Clear existing data from SQLite tables (embeddings first due to foreign key)
@@ -94,4 +96,6 @@ async function main() {
   sqlite.close();
 }
 
-main().catch(console.error);
+main()
+  .catch(console.error)
+  .finally(() => closePgPool());

@@ -1,5 +1,5 @@
 // PostgreSQL exports
-export {pgDb, type PGDB} from './internal/postgres';
+export {getPgDrizzle, pgPool, closePgPool} from './internal/postgres';
 
 // SQLite exports
 export {

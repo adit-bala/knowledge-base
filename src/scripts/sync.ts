@@ -1,6 +1,5 @@
 import {
   getPgDrizzle,
-  pgPool,
   sqliteTableExists,
   withSqliteConnection,
   closePgPool,

@@ -1,5 +1,5 @@
 import {pgTable as table} from 'drizzle-orm/pg-core';
-import {article} from './article';
+import {article} from './article.js';
 import * as t from 'drizzle-orm/pg-core';
 
 export const embedding = table(
@@ -19,4 +19,4 @@ export const embedding = table(
       .index('embeddingIndex')
       .using('hnsw', table.embedding.op('vector_cosine_ops')),
   ],
-);
+).enableRLS();

@@ -5,32 +5,38 @@ import {
   GuardrailExecutionError,
   InputGuardrailTripwireTriggered,
 } from '@openai/agents';
-import {Pool} from 'pg';
 import {drizzle} from 'drizzle-orm/node-postgres';
-import {article} from '@schema/article.js';
-import {embedding} from '@schema/embedding.js';
+import {article} from './schema/article.js';
+import {embedding} from './schema/embedding.js';
 import {
   createKnowledgeAgent,
   relevanceGuardrail,
   initializeArticleContentCacheWithLog,
   getSystemPrompt,
-} from '@agents';
+} from './agents/index.js';
 import 'dotenv/config';
 import {logger} from './logger.js';
 import {sql} from 'drizzle-orm';
 
-export const pool = new Pool({connectionString: process.env.DATABASE_URL});
-export const db = drizzle(pool, {schema: {article, embedding}});
+const db = drizzle(process.env.DATABASE_URL!, {schema: {article, embedding}});
 
 // Test RLS protection with destructive query
 async function testRLSProtection() {
   logger.info('Testing RLS protection...');
   try {
-    await db.execute(sql`DELETE FROM article WHERE id = 'test'`);
-    logger.error('❌ RLS FAILED: Destructive query succeeded');
+    // First, try to insert a test row to see if RLS blocks writes
+    await db.execute(
+      sql`INSERT INTO article (id, title, description, tags, created_at, markdown, last_edited) VALUES ('test-rls', 'test', 'test description', ARRAY['test'], NOW(), 'test content', NOW())`,
+    );
+    const titles = await db.select({title: sql`'test-rls'`}).from(article);
+    console.log('titles:', titles);
+    logger.error('❌ RLS FAILED: INSERT query succeeded - RLS not working');
+
+    // Clean up the test row if insert succeeded
+    await db.execute(sql`DELETE FROM article WHERE id = 'test-rls'`);
   } catch (error) {
     logger.info(
-      '✅ RLS WORKING: Destructive query blocked:',
+      '✅ RLS WORKING: Write query blocked:',
       error instanceof Error ? error.message : 'Unknown error',
     );
   }
@@ -134,7 +140,7 @@ app.post('/ask', async (request, reply) => {
 
             /* 4. Anything new we haven't accounted for yet */
             default:
-              logger.debug(`(skipping unhandled event)`);
+              logger.debug('(skipping unhandled event)');
           }
         }
 

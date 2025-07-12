@@ -1,5 +1,5 @@
 {
-  "id": "1fc0ffc0-2579-41e8-888e-030da8989f46",
+  "id": "c4c8410c-f4d2-437e-ab18-8416ce2c338e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -69,7 +69,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "public"
+            "read_only"
           ],
           "using": "false",
           "withCheck": "false"
@@ -79,13 +79,13 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
-            "public"
+            "read_only"
           ],
           "using": "true"
         }
       },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.embedding": {
       "name": "embedding",
@@ -163,7 +163,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "public"
+            "read_only"
           ],
           "using": "false",
           "withCheck": "false"
@@ -173,13 +173,13 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
-            "public"
+            "read_only"
           ],
           "using": "true"
         }
       },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     }
   },
   "enums": {

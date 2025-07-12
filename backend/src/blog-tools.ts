@@ -1,8 +1,8 @@
 import {tool} from '@openai/agents';
 import {z} from 'zod';
 import OpenAI from 'openai';
-import {article} from '@schema/article.js';
-import {embedding} from '@schema/embedding.js';
+import {article} from './schema/article.js';
+import {embedding} from './schema/embedding.js';
 import {inArray, sql, cosineDistance, desc} from 'drizzle-orm';
 import type {NodePgDatabase} from 'drizzle-orm/node-postgres';
 

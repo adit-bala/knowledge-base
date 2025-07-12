@@ -1,8 +1,8 @@
 import {Agent} from '@openai/agents';
 import {createBlogTools} from '../blog-tools.js';
 import 'dotenv/config';
-import {article} from '@schema/article.js';
-import {embedding} from '@schema/embedding.js';
+import {article} from '../schema/article.js';
+import {embedding} from '../schema/embedding.js';
 import {inArray} from 'drizzle-orm';
 import type {NodePgDatabase} from 'drizzle-orm/node-postgres';
 

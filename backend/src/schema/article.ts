@@ -24,4 +24,4 @@ export const article = table('article', {
   markdown: t.text('markdown').notNull(),
   status: rolesEnum('status'),
   lastEdited: t.timestamp('last_edited').notNull(),
-});
+}).enableRLS();

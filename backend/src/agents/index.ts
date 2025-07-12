@@ -3,5 +3,5 @@ export {
   createKnowledgeAgent,
   initializeArticleContentCacheWithLog,
   getSystemPrompt,
-} from './knowledge-agent';
-export {relevanceCheckAgent, relevanceGuardrail} from './relevance-checker';
+} from './knowledge-agent.js';
+export {relevanceCheckAgent, relevanceGuardrail} from './relevance-checker.js';

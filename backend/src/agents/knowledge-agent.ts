@@ -47,14 +47,27 @@ function getDefaultInstructions(): string {
 
     ${stringifyArticleContentCache()}
 
-    There a number of information sources that you should always use to answer questions. Aditya has written a number of blog posts that cover a wide range of topics. You can use the list_blog_post_titles_and_description tool to get a list of all blog post titles and descriptions of the blog posts. You can also use the query_blog_db_sql tool to run SQL queries on the blog database. You can also use the query_blog_db_natural tool to query the blog database using natural language, which will use RAG to find relevant content and provide context that can be used to answer the question.
+    There are several information sources you should use to answer questions. Aditya has written numerous blog posts covering a wide range of topics. 
 
-  Here is the database schema:
-  ${getSchemaDocumentation()}
+    **CHOOSE THE BEST TOOL FOR THE JOB:**
 
-  Use these tools to help answer questions about the blog content. When users ask questions, use the appropriate tool(s) to find relevant information and answer the question. once you have sufficient information
-  
-  Ensure your response is concise and to the point, but is very friendly and engaging.`;
+    - query_blog_db_natural: Use for questions about content, opinions, explanations, or when you need to find what Aditya has written about a specific topic. Pass the user's question directly as the parameter.
+
+    - list_blog_post_titles_and_description: Use when you need to see what blog posts exist, get an overview of available content, or understand the scope of Aditya's writings.
+
+    - query_blog_db_sql: Use for specific data queries like counts, dates, finding articles by status, or when you need precise database information.
+
+    **WORKFLOW:**
+    1. Assess the question type and choose the most appropriate tool
+    2. Use the tool that best fits the information need
+    3. If the first tool doesn't provide enough information, then use additional tools as needed
+
+    Here is the database schema:
+    ${getSchemaDocumentation()}
+
+    Remember: Choose the right tool for the job. Don't overuse tools - use the one that will give you the information you need most efficiently.
+    
+    Ensure your response is concise and to the point, but is very friendly and engaging.`;
 }
 
 // Exported cache initializer

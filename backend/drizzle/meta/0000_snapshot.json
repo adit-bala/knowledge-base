@@ -1,5 +1,5 @@
 {
-  "id": "c4c8410c-f4d2-437e-ab18-8416ce2c338e",
+  "id": "18073a8d-e825-4b94-9e8f-5d8255e5b888",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -138,6 +138,21 @@
           "concurrently": false,
           "method": "hnsw",
           "with": {}
+        },
+        "content_search_index": {
+          "name": "content_search_index",
+          "columns": [
+            {
+              "expression": "to_tsvector('english', content)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -200,7 +215,7 @@
     "read_only": {
       "name": "read_only",
       "createDb": false,
-      "createRole": false,
+      "createRole": true,
       "inherit": true
     }
   },

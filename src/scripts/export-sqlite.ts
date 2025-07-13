@@ -1,9 +1,15 @@
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
-import {getPgDrizzle, getSqliteConnection, ensureDbDir, closePgPool} from '@db/db';
+import {
+  getPgDrizzle,
+  getSqliteConnection,
+  ensureDbDir,
+  closePgPool,
+} from '@db/db';
 import {article} from '@schema/article';
 import {embedding} from '@schema/embedding';
 import {notion, notionEmbedding} from '@schema/notion';
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({override: true});
 
 const db = getPgDrizzle({article, embedding});
 

@@ -4,7 +4,9 @@ import {pgRole} from 'drizzle-orm/pg-core';
 import {article} from './article.js';
 import {embedding} from './embedding.js';
 
-export const readOnlyRole = pgRole('read_only');
+export const readOnlyRole = pgRole('read_only', {
+  createRole: true,
+});
 
 // Read-only access policy for article
 export const articleSelect = pgPolicy('article_select', {

@@ -4,20 +4,25 @@ import {
   withTrace,
   GuardrailExecutionError,
   InputGuardrailTripwireTriggered,
+  MaxTurnsExceededError,
 } from '@openai/agents';
 import {drizzle} from 'drizzle-orm/node-postgres';
 import {article} from './schema/article.js';
 import {embedding} from './schema/embedding.js';
+import {Pool} from 'pg';
 import {
   createKnowledgeAgent,
   relevanceGuardrail,
   initializeArticleContentCacheWithLog,
   getSystemPrompt,
 } from './agents/index.js';
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({override: true});
 import {logger} from './logger.js';
+import 'pgvector/pg';
 
-const db = drizzle(process.env.DATABASE_URL!, {schema: {article, embedding}});
+const pool = new Pool({connectionString: process.env.DATABASE_URL!});
+const db = drizzle(pool, {schema: {article, embedding}});
 
 // Initialise Fastify with our pino logger instance
 const app = Fastify({logger});
@@ -60,7 +65,7 @@ app.post('/ask', async (request, reply) => {
         const stream = await runner.run(
           createKnowledgeAgent(db, logger, systemPrompt),
           question,
-          {stream: true},
+          {stream: true, maxTurns: 5},
         );
 
         // Log meaningful streaming events for visibility
@@ -144,8 +149,17 @@ app.post('/ask', async (request, reply) => {
         details:
           'Please ask questions related to Aditya, his background, work, or the content of this website.',
       });
+    } else if (err instanceof MaxTurnsExceededError) {
+      await reply.status(500).send({
+        error: 'Question too complex',
+        details:
+          'The question is too complex and requires more turns to answer. Please try again with a simpler question.',
+      });
     } else {
-      await reply.status(500).send({error: 'Internal Server Error'});
+      await reply.status(500).send({
+        error: 'Internal Server Error',
+        details: 'An unexpected error occurred. Please try again later.',
+      });
     }
   }
 });

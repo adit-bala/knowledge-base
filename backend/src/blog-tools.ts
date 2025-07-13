@@ -3,8 +3,11 @@ import {z} from 'zod';
 import OpenAI from 'openai';
 import {article} from './schema/article.js';
 import {embedding} from './schema/embedding.js';
-import {inArray, sql, cosineDistance, desc} from 'drizzle-orm';
+import {sql, desc, cosineDistance} from 'drizzle-orm';
 import type {NodePgDatabase} from 'drizzle-orm/node-postgres';
+import * as dotenv from 'dotenv';
+import 'pgvector/pg';
+dotenv.config({override: true});
 
 export function createBlogTools(
   db: NodePgDatabase<{article: typeof article; embedding: typeof embedding}>,
@@ -130,7 +133,7 @@ export function createBlogTools(
         // Full-text search condition
         const fullTextCondition = sql`to_tsvector('english', ${embedding.content}) @@ plainto_tsquery('english', ${natural_language_query})`;
 
-        // Use Drizzle's cosineDistance helper with the query builder
+        // Use Drizzle's cosineDistance helper with the query builder:
         const similarity = sql<number>`1 - (${cosineDistance(embedding.embedding, qVec)})`;
         let rows = await db
           .select({content: embedding.content, score: similarity})
@@ -138,6 +141,7 @@ export function createBlogTools(
           .where(fullTextCondition)
           .orderBy(desc(similarity))
           .limit(5);
+        logger.debug('RAG context:', rows);
 
         if (rows.length === 0) {
           // Fallback: just use vector similarity

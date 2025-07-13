@@ -11,7 +11,8 @@ import {LogLevel} from '@notionhq/client';
 import {inArray, eq} from 'drizzle-orm';
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
 import {notionEmbedding} from '@schema/notion';
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({override: true});
 
 const db = getPgDrizzle({article});
 

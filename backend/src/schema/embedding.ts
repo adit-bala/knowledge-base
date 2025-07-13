@@ -1,4 +1,5 @@
 import {pgTable as table} from 'drizzle-orm/pg-core';
+import {sql} from 'drizzle-orm';
 import {article} from './article.js';
 import * as t from 'drizzle-orm/pg-core';
 
@@ -18,5 +19,8 @@ export const embedding = table(
     t
       .index('embeddingIndex')
       .using('hnsw', table.embedding.op('vector_cosine_ops')),
+    t
+      .index('content_search_index')
+      .using('gin', sql`to_tsvector('english', content)`),
   ],
 ).enableRLS();

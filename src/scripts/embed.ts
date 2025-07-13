@@ -7,7 +7,8 @@ import OpenAI from 'openai';
 import crypto from 'crypto';
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
 import {notionEmbedding} from '@schema/notion';
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({override: true});
 
 const db = getPgDrizzle({embedding});
 

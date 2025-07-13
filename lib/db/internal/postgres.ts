@@ -1,6 +1,7 @@
 import {Pool} from 'pg';
 import {drizzle} from 'drizzle-orm/node-postgres';
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({override: true});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,

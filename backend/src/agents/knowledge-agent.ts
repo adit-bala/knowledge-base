@@ -1,6 +1,7 @@
 import {Agent} from '@openai/agents';
 import {createBlogTools} from '../blog-tools.js';
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({override: true});
 import {article} from '../schema/article.js';
 import {embedding} from '../schema/embedding.js';
 import {inArray} from 'drizzle-orm';

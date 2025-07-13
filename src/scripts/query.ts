@@ -2,7 +2,10 @@ import {getPgDrizzle, closePgPool} from '@db/db';
 import {cosineDistance, desc, sql} from 'drizzle-orm';
 import OpenAI from 'openai';
 import readline from 'node:readline/promises';
-import 'dotenv/config';
+import {config} from 'dotenv';
+
+// Force reload environment variables
+config({override: true});
 
 import {embedding} from '@schema/embedding';
 
@@ -27,7 +30,10 @@ async function main() {
   const query = await ask();
   if (!query) throw new Error('Empty query');
 
-  const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY!});
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+    organization: process.env.OPENAI_ORG_ID,
+  });
   const qVec = (
     await openai.embeddings.create({
       model: 'text-embedding-3-small',

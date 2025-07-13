@@ -48,6 +48,17 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: npm run sync
 
+      # Install PostgreSQL CLI tools required by the copy-postgres script
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      # Copy data from the workflow's Postgres service to the Raspberry Pi Postgres instance
+      - name: Copy data to production Postgres
+        env:
+          SOURCE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
+          DEST_DATABASE_URL: ${{ secrets.PROD_DB_ADMIN_URL }}
+        run: npx tsx src/scripts/copy-postgres.ts --source="$SOURCE_DATABASE_URL" --dest="$DEST_DATABASE_URL"
+
       - name: Run SQLite migrations
         run: npx drizzle-kit migrate --config=drizzle.sqlite.config.ts
 
@@ -56,24 +67,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
         run: npm run export
 
-      # # Install PostgreSQL CLI tools required by the copy-postgres script
-      # - name: Install PostgreSQL client tools
-      #   run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      # # Join the GitHub Actions runner to the Tailnet so it can reach the Raspberry Pi
-      # - name: Join Tailnet
-      #   uses: tailscale/github-action@v2
-      #   with:
-      #     authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-      #     hostname: gha-${{ github.run_id }}
-
-      # Copy data from the workflow's Postgres service to the Raspberry Pi Postgres instance
-      # - name: Copy data to production Postgres
-      #   env:
-      #     SOURCE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
-      #     DEST_DATABASE_URL: ${{ secrets.PROD_DB_ADMIN_URL }}
-      #   run: npx tsx src/scripts/copy-postgres.ts
-
+     
       - name: Commit SQLite DB
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

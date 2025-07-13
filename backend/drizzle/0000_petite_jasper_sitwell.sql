@@ -1,7 +1,8 @@
 CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
 CREATE TYPE "public"."status" AS ENUM('draft', 'published', 'archive', 'in_review');--> statement-breakpoint
-DROP ROLE IF EXISTS "read_only";--> statement-breakpoint
-CREATE ROLE "read_only" WITH LOGIN PASSWORD 'postgres';--> statement-breakpoint
+--- HACK: We manually create this role in koyeb
+-- DROP ROLE IF EXISTS "read_only";--> statement-breakpoint
+-- CREATE ROLE "read_only" WITH LOGIN PASSWORD 'postgres';--> statement-breakpoint
 CREATE TABLE "article" (
 	"id" text PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,

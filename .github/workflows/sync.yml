@@ -51,10 +51,10 @@ jobs:
       - name: Run SQLite migrations
         run: npx drizzle-kit migrate --config=drizzle.sqlite.config.ts
 
-      # - name: Export Postgres article table to SQLite DB
-      #   env:
-      #     DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
-      #   run: npm run export
+      - name: Export Postgres article table to SQLite DB
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
+        run: npm run export
 
       # # Install PostgreSQL CLI tools required by the copy-postgres script
       # - name: Install PostgreSQL client tools

@@ -20,6 +20,7 @@ import * as dotenv from 'dotenv';
 dotenv.config({override: true});
 import {logger} from './logger.js';
 import 'pgvector/pg';
+import {rateLimiter} from './rate-limiter.js';
 
 const pool = new Pool({connectionString: process.env.DATABASE_URL!});
 const db = drizzle(pool, {schema: {article, embedding}});
@@ -41,6 +42,20 @@ const runner = new Runner({
 
 app.post('/ask', async (request, reply) => {
   logger.info('Received /ask request', request.body);
+
+  // Check rate limit before processing
+  const rateLimitCheck = rateLimiter.checkLimit();
+  if (!rateLimitCheck.allowed) {
+    logger.warn('Rate limit exceeded', rateLimitCheck);
+    await reply.send({
+      error: 'Rate limit exceeded',
+      details:
+        'Aditya is too broke to provide more LLM calls, please try again tomorrow.',
+      resetTime: rateLimitCheck.resetTime,
+    });
+    return;
+  }
+
   const {question} = request.body as {question?: string};
   if (!question) {
     logger.error('Missing question in request body');
@@ -134,6 +149,9 @@ app.post('/ask', async (request, reply) => {
         },
       },
     );
+
+    // Increment usage after successful processing
+    rateLimiter.incrementUsage();
 
     logger.info('Sending final answer:', result.finalOutput);
     await reply.send({answer: result.finalOutput});

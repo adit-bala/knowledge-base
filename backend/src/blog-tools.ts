@@ -1,6 +1,7 @@
 import {tool} from '@openai/agents';
 import {z} from 'zod';
 import OpenAI from 'openai';
+import {CohereClientV2} from 'cohere-ai';
 import {article} from './schema/article.js';
 import {embedding} from './schema/embedding.js';
 import {sql, desc, cosineDistance} from 'drizzle-orm';
@@ -18,6 +19,7 @@ export function createBlogTools(
   },
 ) {
   const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY!});
+  const cohere = new CohereClientV2({});
 
   /* ------------------------------------------------------------------------ */
   /* 1. List all blog post titles + descriptions                              */
@@ -140,7 +142,7 @@ export function createBlogTools(
           .from(embedding)
           .where(fullTextCondition)
           .orderBy(desc(similarity))
-          .limit(5);
+          .limit(12);
         logger.debug('RAG context:', rows);
 
         if (rows.length === 0) {
@@ -149,7 +151,7 @@ export function createBlogTools(
             .select({content: embedding.content, score: similarity})
             .from(embedding)
             .orderBy(desc(similarity))
-            .limit(5);
+            .limit(12);
         }
 
         if (rows.length === 0) {
@@ -157,11 +159,37 @@ export function createBlogTools(
           return 'No relevant content found for your query.';
         }
 
-        // Build context from retrieved content
-        const context = rows
-          .map((r: {content: string}) => r.content)
+        // Rerank with Cohere for better relevance
+        let rerankedResults: any[] = [];
+        try {
+          const reranked = await cohere.rerank({
+            model: 'rerank-v3.5',
+            documents: rows.map(r => r.content),
+            query: natural_language_query,
+            topN: 5,
+          });
+          rerankedResults = reranked.results;
+          logger.debug('Cohere rerank completed successfully');
+        } catch (error) {
+          logger.error(
+            'Error during Cohere reranking, using original results:',
+            error,
+          );
+          rerankedResults = rows.slice(0, 5).map((r, i) => ({
+            index: i,
+            relevanceScore: r.score,
+          }));
+        }
+
+        // Build context from reranked content
+        const context = rerankedResults
+          .map(r => {
+            // Get the actual content from the original rows using the index
+            const originalIndex = r.index;
+            return rows[originalIndex]?.content || '';
+          })
           .join('\n---\n');
-        logger.debug('RAG context:', context);
+        logger.debug('RAG context (after reranking):', context);
         return context;
       } catch (error) {
         logger.error('Error processing natural language query:', error);

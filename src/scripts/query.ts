@@ -1,11 +1,14 @@
 import {getPgDrizzle, closePgPool} from '@db/db';
 import {cosineDistance, desc, sql} from 'drizzle-orm';
 import OpenAI from 'openai';
+import {CohereClientV2} from 'cohere-ai';
 import readline from 'node:readline/promises';
 import {config} from 'dotenv';
 
 // Force reload environment variables
 config({override: true});
+
+const cohere = new CohereClientV2({});
 
 import {embedding} from '@schema/embedding';
 
@@ -51,7 +54,7 @@ async function main() {
     .from(embedding)
     .where(fullTextCondition)
     .orderBy(desc(similarity))
-    .limit(5);
+    .limit(12);
 
   if (rows.length === 0) {
     // Fallback: just use vector similarity
@@ -59,7 +62,7 @@ async function main() {
       .select({content: embedding.content, score: similarity})
       .from(embedding)
       .orderBy(desc(similarity))
-      .limit(5);
+      .limit(12);
   }
 
   console.log('\n--- Retrieved (before reranking) ---');
@@ -67,7 +70,44 @@ async function main() {
     console.log(`#${i + 1} (${r.score.toFixed(4)})\n${r.content}\n`),
   );
 
-  const context = rows.map(r => r.content).join('\n---\n');
+  // Rerank with Cohere
+  let rerankedResults = [];
+  try {
+    const reranked = await cohere.rerank({
+      model: 'rerank-v3.5',
+      documents: rows.map(r => r.content),
+      query: query,
+      topN: 5,
+    });
+    rerankedResults = reranked.results;
+  } catch (error) {
+    console.log('\n--- Error during reranking, using original results ---');
+    console.error('Reranking error:', error);
+    rerankedResults = rows.slice(0, 5).map((r, i) => ({
+      index: i,
+      document: {text: r.content},
+      relevanceScore: r.score,
+    }));
+  }
+
+  console.log('\n--- Retrieved (after reranking) ---');
+  rerankedResults.forEach((r, i) => {
+    // The rerank result only contains index and relevanceScore
+    // We need to get the actual content from the original rows using the index
+    const originalIndex = r.index;
+    const content = rows[originalIndex]?.content || 'No content';
+    console.log(
+      `#${i + 1} (score: ${r.relevanceScore?.toFixed(4)})\n${content}\n`,
+    );
+  });
+
+  const context = rerankedResults
+    .map(r => {
+      // Get the actual content from the original rows using the index
+      const originalIndex = r.index;
+      return rows[originalIndex]?.content || '';
+    })
+    .join('\n---\n');
   const chat = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [

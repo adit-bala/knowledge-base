@@ -9,51 +9,6 @@ import * as dotenv from 'dotenv';
 import 'pgvector/pg';
 dotenv.config({override: true});
 
-// Cross-encoder components (lazy-loaded)
-let tokenizer: any | undefined;
-let model: any | undefined;
-
-async function loadCrossEncoder() {
-  if (tokenizer && model) return;
-
-  const {AutoTokenizer, AutoModelForSequenceClassification} = await import(
-    '@xenova/transformers'
-  );
-
-  const MODEL_NAME = 'cross-encoder/ms-marco-MiniLM-L-6-v2';
-  tokenizer = await AutoTokenizer.from_pretrained(MODEL_NAME);
-  model = await AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, {
-    quantized: false, // use full-precision weights
-  });
-}
-
-async function rerank(
-  query: string,
-  rows: Array<{content: string; score: number}>,
-): Promise<Array<{content: string; score: number; ceScore: number}>> {
-  if (rows.length === 0) return [];
-
-  await loadCrossEncoder();
-
-  const scored = await Promise.all(
-    rows.map(async r => {
-      const inputs = tokenizer!(query, {
-        text_pair: r.content,
-        padding: true,
-        truncation: true,
-      });
-      const {logits} = await model!(inputs);
-      // logits is a Tensor; extract first value
-      const ce = (logits.data as Float32Array)[0] as number;
-      return {...r, ceScore: ce};
-    }),
-  );
-
-  // Return top-5 by cross-encoder score
-  const top5 = scored.sort((a, b) => b.ceScore - a.ceScore).slice(0, 5);
-  return top5;
-}
-
 export function createBlogTools(
   db: NodePgDatabase<{article: typeof article; embedding: typeof embedding}>,
   logger: {
@@ -185,7 +140,7 @@ export function createBlogTools(
           .from(embedding)
           .where(fullTextCondition)
           .orderBy(desc(similarity))
-          .limit(12);
+          .limit(5);
         logger.debug('RAG context:', rows);
 
         if (rows.length === 0) {
@@ -194,7 +149,7 @@ export function createBlogTools(
             .select({content: embedding.content, score: similarity})
             .from(embedding)
             .orderBy(desc(similarity))
-            .limit(12);
+            .limit(5);
         }
 
         if (rows.length === 0) {
@@ -202,12 +157,8 @@ export function createBlogTools(
           return 'No relevant content found for your query.';
         }
 
-        // Cross-encoder reranking
-        const reranked = await rerank(natural_language_query, rows);
-        logger.debug('Reranked results:', reranked);
-
         // Build context from retrieved content
-        const context = reranked
+        const context = rows
           .map((r: {content: string}) => r.content)
           .join('\n---\n');
         logger.debug('RAG context:', context);

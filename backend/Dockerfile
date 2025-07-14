@@ -1,13 +1,4 @@
-FROM node:20-slim
-
-# Install system dependencies required for ONNX Runtime
-RUN apt-get update && apt-get install -y \
-    libgomp1 \
-    libblas3 \
-    liblapack3 \
-    libatlas-base-dev \
-    gfortran \
-    && rm -rf /var/lib/apt/lists/*
+FROM node:20-alpine
 
 # Create app directory
 WORKDIR /app

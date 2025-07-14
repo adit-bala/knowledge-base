@@ -96,14 +96,21 @@ jobs:
             https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
             | jq -r .sha 2>/dev/null || echo "")
           
+          # Create JSON payload file to avoid "Argument list too long" error
           if [ -n "$SHA" ]; then
-            curl -X PUT -H "Authorization: bearer $GH_TOKEN" \
-                 -H "Content-Type: application/json" \
-                 https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
-                 -d "{\"message\":\"[automated] notion db sync\",\"content\":\"$CONTENT\",\"sha\":\"$SHA\"}"
+            jq -n \
+              --arg message "[automated] notion db sync" \
+              --arg content "$CONTENT" \
+              --arg sha "$SHA" \
+              '{"message": $message, "content": $content, "sha": $sha}' > payload.json
           else
-            curl -X PUT -H "Authorization: bearer $GH_TOKEN" \
-                 -H "Content-Type: application/json" \
-                 https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
-                 -d "{\"message\":\"[automated] notion db sync\",\"content\":\"$CONTENT\"}"
+            jq -n \
+              --arg message "[automated] notion db sync" \
+              --arg content "$CONTENT" \
+              '{"message": $message, "content": $content}' > payload.json
           fi
+          
+          curl -X PUT -H "Authorization: bearer $GH_TOKEN" \
+               -H "Content-Type: application/json" \
+               https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
+               -d @payload.json

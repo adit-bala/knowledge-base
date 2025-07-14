@@ -81,3 +81,29 @@ jobs:
             git commit -m "[automated] notion db sync"
             git push origin HEAD:${{ github.ref }}
           fi
+      - name: Base64-encode DB
+        run: |
+          base64 -w0 db/notion.db > db.b64
+          DB64=$(cat db.b64)
+          printf '%s' "$DB64" >"$GITHUB_WORKSPACE/encoded.txt"
+
+      - name: commit db to frontend repo
+        env:
+          GH_TOKEN: ${{ secrets.FRONTEND_REPO_PAT }}
+        run: |
+          CONTENT=$(cat encoded.txt)
+          SHA=$(curl -s -H "Authorization: bearer $GH_TOKEN" \
+            https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
+            | jq -r .sha 2>/dev/null || echo "")
+          
+          if [ -n "$SHA" ]; then
+            curl -X PUT -H "Authorization: bearer $GH_TOKEN" \
+                 -H "Content-Type: application/json" \
+                 https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
+                 -d "{\"message\":\"[automated] notion db sync\",\"content\":\"$CONTENT\",\"sha\":\"$SHA\"}"
+          else
+            curl -X PUT -H "Authorization: bearer $GH_TOKEN" \
+                 -H "Content-Type: application/json" \
+                 https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
+                 -d "{\"message\":\"[automated] notion db sync\",\"content\":\"$CONTENT\"}"
+          fi

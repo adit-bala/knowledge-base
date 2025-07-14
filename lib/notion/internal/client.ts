@@ -112,9 +112,9 @@ export function getNotionClient(params: NotionClientParams): NotionClient {
         : [];
 
     const createdAt =
-      p.properties['Created at']?.type === 'created_time'
-        ? new Date(p.properties['Created at'].created_time)
-        : new Date();
+      p.properties['Created at']?.type === 'date'
+        ? new Date(p.properties['Created at'].date?.start || '')
+        : new Date(p.created_time);
 
     let markdown = '';
     const pc = p.properties['Page Content'];

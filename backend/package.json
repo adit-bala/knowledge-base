@@ -9,6 +9,7 @@
     "dev": "tsx src/server.ts"
   },
   "dependencies": {
+    "@fastify/cors": "^8.5.0",
     "@openai/agents": "^0.0.11",
     "dotenv": "^17.2.0",
     "drizzle-orm": "^0.44.2",

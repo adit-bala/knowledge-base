@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import {
   Runner,
   withTrace,
@@ -28,6 +29,14 @@ const db = drizzle(pool, {schema: {article, embedding}});
 // Initialise Fastify with our pino logger instance
 const app = Fastify({logger});
 logger.info('Fastify server created');
+
+// Register CORS plugin
+void app.register(cors, {
+  origin: true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET'],
+});
+logger.info('CORS plugin registered');
 
 // Use the logger-enabled relevanceGuardrail for runner
 const runner = new Runner({

@@ -91,22 +91,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.FRONTEND_REPO_PAT }}
         run: |
-          CONTENT=$(cat encoded.txt)
           SHA=$(curl -s -H "Authorization: bearer $GH_TOKEN" \
             https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
             | jq -r .sha 2>/dev/null || echo "")
-          
-          # Create JSON payload file to avoid "Argument list too long" error
+
+          # Build the JSON payload without putting large content on the command line
           if [ -n "$SHA" ]; then
+            # --rawfile reads the entire file into the variable; only the small SHA and message are passed as args
             jq -n \
               --arg message "[automated] notion db sync" \
-              --arg content "$CONTENT" \
               --arg sha "$SHA" \
+              --rawfile content encoded.txt \
               '{"message": $message, "content": $content, "sha": $sha}' > payload.json
           else
             jq -n \
               --arg message "[automated] notion db sync" \
-              --arg content "$CONTENT" \
+              --rawfile content encoded.txt \
               '{"message": $message, "content": $content}' > payload.json
           fi
           

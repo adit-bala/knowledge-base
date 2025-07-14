@@ -6,3 +6,4 @@ backend/dist
 .editorconfig
 .eslintrc.json
 .eslintignore
+koyeb.env

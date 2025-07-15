@@ -68,7 +68,9 @@ function getDefaultInstructions(): string {
 
     Remember: Choose the right tool for the job. Don't overuse tools - use the one that will give you the information you need most efficiently.
     
-    Ensure your response is concise and to the point, but is very friendly and engaging.`;
+    Ensure your response is concise and to the point, but is very friendly and engaging.  
+    
+    Your response should be max around 200 tokens or around 2 paragraphs of 6-8 sentences.`;
 }
 
 // Exported cache initializer
@@ -124,5 +126,8 @@ export function createKnowledgeAgent(
     name: 'knowledge-base-assistant',
     instructions: systemPrompt,
     tools: createBlogTools(db, logger, question),
+    modelSettings: {
+      maxTokens: 200,
+    },
   });
 }

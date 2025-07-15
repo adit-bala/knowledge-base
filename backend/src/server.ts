@@ -23,6 +23,13 @@ import {logger} from './logger.js';
 import 'pgvector/pg';
 import {rateLimiter} from './rate-limiter.js';
 
+// Define types for the request payload
+interface AskRequestPayload {
+  question: string;
+  fingerprint?: string;
+  confidence?: number;
+}
+
 const pool = new Pool({connectionString: process.env.DATABASE_URL!});
 const db = drizzle(pool, {schema: {article, embedding}});
 
@@ -65,7 +72,19 @@ app.post('/ask', async (request, reply) => {
     return;
   }
 
-  const {question} = request.body as {question?: string};
+  const {question, fingerprint, confidence} = request.body as AskRequestPayload;
+
+  // Log fingerprint data if provided
+  if (fingerprint) {
+    logger.info('Fingerprint data received', {
+      fingerprint,
+      confidence: confidence || 'unknown',
+      questionLength: question?.length || 0,
+    });
+  } else {
+    logger.info('No fingerprint data provided in request');
+  }
+
   if (!question) {
     logger.error('Missing question in request body');
     await reply.status(400).send({error: "Missing 'question' in request body"});
@@ -154,6 +173,8 @@ app.post('/ask', async (request, reply) => {
       {
         metadata: {
           question,
+          fingerprint: fingerprint || 'not_provided',
+          confidence: confidence || 'not_provided',
           timestamp: new Date().toISOString(),
         },
       },

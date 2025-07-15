@@ -87,7 +87,7 @@ app.post('/ask', async (request, reply) => {
 
         // Use streaming to get visibility into model steps and tool usage
         const stream = await runner.run(
-          createKnowledgeAgent(db, logger, systemPrompt),
+          createKnowledgeAgent(db, logger, systemPrompt, question),
           question,
           {stream: true, maxTurns: 5},
         );

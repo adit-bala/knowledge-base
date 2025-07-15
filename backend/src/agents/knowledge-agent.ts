@@ -52,7 +52,7 @@ function getDefaultInstructions(): string {
 
     **CHOOSE THE BEST TOOL FOR THE JOB:**
 
-    - query_blog_db_natural: MAKE SURE TO PASS THE USER'S QUESTION DIRECTLY AS THE PARAMETER. Use for questions about content, opinions, explanations, or when you need to find what Aditya has written about a specific topic. 
+    - query_blog_db_natural: Use this tool for questions about content, opinions, explanations, or when you want to retrieve chunks of relevant content that Aditya has written about a specific topic. 
 
     - list_blog_post_titles_and_description: Use when you need to see what blog posts exist, get an overview of available content, or understand the scope of Aditya's writings.
 
@@ -118,10 +118,11 @@ export function createKnowledgeAgent(
     debug: (...args: any[]) => void;
   },
   systemPrompt: string,
+  question: string,
 ) {
   return new Agent({
     name: 'knowledge-base-assistant',
     instructions: systemPrompt,
-    tools: createBlogTools(db, logger),
+    tools: createBlogTools(db, logger, question),
   });
 }

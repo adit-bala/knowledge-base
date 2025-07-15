@@ -17,6 +17,7 @@ export function createBlogTools(
     error: (...args: any[]) => void;
     debug: (...args: any[]) => void;
   },
+  question: string,
 ) {
   const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY!});
   const cohere = new CohereClientV2({});
@@ -104,22 +105,13 @@ export function createBlogTools(
   const queryBlogDbNaturalTool = tool({
     name: 'query_blog_db_natural',
     description:
-      'Query the blog database using natural language. This will use RAG to find relevant content and provide context that can be used to answer the question.',
-    parameters: z.object({
-      natural_language_query: z
-        .string()
-        .describe(
-          'The natural language query to search for in the blog content',
-        ),
-    }),
-    async execute({natural_language_query}) {
+      "Query the blog database using the user's question. This will use RAG to find relevant content and provide context that can be used to answer the question.",
+    parameters: z.object({}),
+    async execute() {
       // RLS ensures read-only access; no explicit role switch needed.
-      logger.info(
-        'Executing queryBlogDbNaturalTool with query:',
-        natural_language_query,
-      );
+      logger.info('Executing queryBlogDbNaturalTool with query:', question);
       try {
-        if (!natural_language_query.trim()) {
+        if (!question.trim()) {
           logger.error('Empty query supplied to queryBlogDbNaturalTool');
           throw new Error('Empty query supplied');
         }
@@ -128,12 +120,12 @@ export function createBlogTools(
         const qVec = (
           await openai.embeddings.create({
             model: 'text-embedding-3-small',
-            input: natural_language_query,
+            input: question,
           })
         ).data[0].embedding as number[];
 
         // Full-text search condition
-        const fullTextCondition = sql`to_tsvector('english', ${embedding.content}) @@ plainto_tsquery('english', ${natural_language_query})`;
+        const fullTextCondition = sql`to_tsvector('english', ${embedding.content}) @@ plainto_tsquery('english', ${question})`;
 
         // Use Drizzle's cosineDistance helper with the query builder:
         const similarity = sql<number>`1 - (${cosineDistance(embedding.embedding, qVec)})`;
@@ -165,7 +157,7 @@ export function createBlogTools(
           const reranked = await cohere.rerank({
             model: 'rerank-v3.5',
             documents: rows.map(r => r.content),
-            query: natural_language_query,
+            query: question,
             topN: 5,
           });
           rerankedResults = reranked.results;

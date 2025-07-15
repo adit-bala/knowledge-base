@@ -41,7 +41,7 @@ logger.info('Fastify server created');
 void app.register(cors, {
   origin: true, // Allow all origins in development
   credentials: true,
-  methods: ['GET'],
+  methods: ['GET', 'POST'],
 });
 logger.info('CORS plugin registered');
 

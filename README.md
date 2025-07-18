@@ -32,8 +32,8 @@ NOTION_TOKEN=<notion api key>
 NOTION_DB_ID=<id of notion database>
 DATABASE_URL=<local db URL, ex. postgresql://postgres:postgres@localhost:5432/notion>
 PROD_DB_ADMIN_URL=<prod db url for the github action to connect to>
-OPENAI_API_KEY=<openai api key
-FRONTEND_REPO_PAT=<github token with permissions to write into the frontend repo
+OPENAI_API_KEY=<openai api key>
+FRONTEND_REPO_PAT=<github token with permissions to write into the frontend repo>
 CO_API_KEY=<cohere api keys>
 ```
 

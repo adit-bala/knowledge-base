@@ -8,6 +8,7 @@ import {article} from '@schema/article';
 import {embedArticle} from './embed';
 import {getNotionClient, Row, timeoutMs, Status} from '@notion/client';
 import {LogLevel} from '@notionhq/client';
+import {makeR2Uploader} from '@lib/storage/internal/r2';
 import {inArray, eq} from 'drizzle-orm';
 import {drizzle as drizzleSQLite} from 'drizzle-orm/better-sqlite3';
 import {notionEmbedding} from '@schema/notion';
@@ -53,6 +54,14 @@ async function main() {
     dbId: process.env.NOTION_DB_ID!,
     logLevel: LogLevel.INFO,
     timeoutMs: timeoutMs.CI,
+    upload: makeR2Uploader({
+      bucket: process.env.CLOUDFLARE_R2_BUCKET!,
+      endpoint: process.env.CLOUDFLARE_R2_URL!,
+      region: process.env.R2_REGION ?? 'auto',
+      accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY!,
+      publicUrl: process.env.R2_PUBLIC_URL!,
+    }),
   });
 
   const rows: Row[] = await notion.getUpdatedRows();

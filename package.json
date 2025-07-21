@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/mime-types": "^2.1.4",
     "@types/node": "^22.7.5",
     "@types/pg": "^8.15.4",
     "@types/sqlite3": "^3.1.11",
@@ -15,14 +16,14 @@
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
-    "pretest": "npm run compile",
-    "posttest": "npm run lint",
     "sync": "tsx src/scripts/sync.ts",
     "query": "tsx src/scripts/query.ts",
     "export": "tsx src/scripts/export-sqlite.ts",
-    "copy-pg": "tsx src/scripts/copy-postgres.ts"
+    "copy-pg": "tsx src/scripts/copy-postgres.ts",
+    "test": "tsx src/scripts/test.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.848.0",
     "@langchain/community": "^0.3.2",
     "@langchain/core": "^0.3.62",
     "@langchain/openai": "^0.3.2",
@@ -33,6 +34,7 @@
     "drizzle-orm": "^0.44.2",
     "fastify": "^5.4.0",
     "langchain": "^0.3.29",
+    "mime-types": "^2.1.35",
     "notion-to-md": "^3.1.9",
     "notion-types": "^7.4.2",
     "openai": "^4.62.1",

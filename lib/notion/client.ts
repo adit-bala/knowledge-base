@@ -3,6 +3,7 @@ export {
   Row,
   NotionClient,
   Status,
+  ImageUploader,
   NotionClientParams,
   getNotionClient,
 } from './internal/client';

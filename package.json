@@ -19,8 +19,7 @@
     "sync": "tsx src/scripts/sync.ts",
     "query": "tsx src/scripts/query.ts",
     "export": "tsx src/scripts/export-sqlite.ts",
-    "copy-pg": "tsx src/scripts/copy-postgres.ts",
-    "test": "tsx src/scripts/test.ts"
+    "copy-pg": "tsx src/scripts/copy-postgres.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.848.0",

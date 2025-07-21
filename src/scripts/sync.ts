@@ -54,6 +54,7 @@ async function main() {
     dbId: process.env.NOTION_DB_ID!,
     logLevel: LogLevel.INFO,
     timeoutMs: timeoutMs.CI,
+    storageUrlPrefix: process.env.R2_PUBLIC_URL!.replace(/\/$/, ''),
     upload: makeR2Uploader({
       bucket: process.env.CLOUDFLARE_R2_BUCKET!,
       endpoint: process.env.CLOUDFLARE_R2_URL!,

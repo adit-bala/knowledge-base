@@ -7,8 +7,10 @@ Notion CMS sync with GitHub as snapshot storage
 # Notable Features
 - All content in this repo is managed in a Notion database
 - Edits are synced via a GitHub action that does a number of things
-    - dumps the entire notion database into a fresh PostgreSQL database
-    - creates/updates embeddings for every article
+    - extracts all metadata and article content from the Notion database
+    - uploads any images recently added to Cloudflare and replaces the images in Notion with a permanent image
+    - dumps all notion content into a fresh PostgreSQL database
+    - creates/updates embeddings for every article or uses cached embeddings from SQLite DB for unchanged articles
     - connects to the backend db running on [koyeb](https://www.koyeb.com/) and updates the hosted PostgreSQL db
     - dumps the PostgreSQL database into a SQL database to be committed into this repo as well as the [frontend repo](https://github.com/adit-bala/portfolio)
 - [backend folder](https://github.com/adit-bala/knowledge-base/tree/main/backend) contains the code running on [koyeb](https://www.koyeb.com/) and updates the hosted postgres db
@@ -35,6 +37,11 @@ PROD_DB_ADMIN_URL=<prod db url for the github action to connect to>
 OPENAI_API_KEY=<openai api key>
 FRONTEND_REPO_PAT=<github token with permissions to write into the frontend repo>
 CO_API_KEY=<cohere api keys>
+CLOUDFLARE_R2_BUCKET=<name of bucket>
+CLOUDFLARE_R2_ACCESS_KEY_ID=<access key id>
+CLOUDFLARE_SECRET_ACCESS_KEY=<secret access key>
+CLOUDFLARE_R2_URL=<url of bucket>
+R2_PUBLIC_URL=<custom domain name for images>
 ```
 
 Then run npm install in the root dir and `/backend`

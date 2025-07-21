@@ -57,7 +57,7 @@ async function main() {
     upload: makeR2Uploader({
       bucket: process.env.CLOUDFLARE_R2_BUCKET!,
       endpoint: process.env.CLOUDFLARE_R2_URL!,
-      region: process.env.R2_REGION ?? 'auto',
+      region: 'auto',
       accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY!,
       publicUrl: process.env.R2_PUBLIC_URL!,

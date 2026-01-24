@@ -1,117 +1,121 @@
 # knowledge-base
 
-Notion CMS sync with GitHub as snapshot storage
+Notion CMS sync with PGlite for portable PostgreSQL storage.
 
-- Design Diagram coming soon...
+## Notable Features
 
-# Notable Features
-- All content in this repo is managed in a Notion database
-- Edits are synced via a GitHub action that does a number of things
-    - extracts all metadata and article content from the Notion database
-    - uploads any images recently added to Cloudflare and replaces the images in Notion with a permanent image
-    - dumps all notion content into a fresh PostgreSQL database
-    - creates/updates embeddings for every article or uses cached embeddings from SQLite DB for unchanged articles
-    - connects to the backend db running on [koyeb](https://www.koyeb.com/) and updates the hosted PostgreSQL db
-    - dumps the PostgreSQL database into a SQL database to be committed into this repo as well as the [frontend repo](https://github.com/adit-bala/portfolio)
-- [backend folder](https://github.com/adit-bala/knowledge-base/tree/main/backend) contains the code running on [koyeb](https://www.koyeb.com/) and updates the hosted postgres db
-    - Routes requests to an agent with access to different tools to answer a user's natural language query
-        - query_blog_db_natural: takes in a user query and uses RAG (pgvector + full-text search + cross-encoder reranking) to retrieve relevant chunks from my blog
-        - list_blog_post_titles_and_description: lists all blog post titles and descriptions
-        - query_blog_db_sql: raw SQL queries for perhaps more analytical questions from the user (How many blogs did Aditya write in each year?)
+- All content is managed in a Notion database
+- Syncs via a GitHub Action that:
+  - Extracts metadata and article content from Notion
+  - Downloads and stores images as BLOBs in the database
+  - Uses GPT-4o-mini to generate article descriptions and sample questions for semantic search
+  - Creates vector embeddings using OpenAI's text-embedding-3-small model
+  - Exports the database as a portable gzipped tarball (`db/notion.db.tar.gz`)
+  - Commits the database to this repo and the [frontend repo](https://github.com/adit-bala/portfolio)
 
-# How to use this repo
+### Architecture
+
+The sync pipeline uses **PGlite** (WASM-based PostgreSQL) instead of a traditional PostgreSQL server. This means:
+- No Docker or external database required
+- Database runs entirely in-process
+- Supports pgvector for embeddings
+- Portable tarball format for easy distribution
+
+### Three-Phase Pipeline
+
+1. **Fetch Phase** - Retrieve data from Notion, download images
+2. **Update Phase** - Upsert articles, store images, generate embeddings
+3. **Upload Phase** - Export database to tarball
+
+Smart diffing skips unchanged articles based on `last_edited_time` timestamps.
 
 ## Setup
 
-First clone this repo
-```
+Clone this repo:
+```bash
 git clone git@github.com:adit-bala/knowledge-base.git
+cd knowledge-base
+npm install
 ```
 
-You will need the following in both `.env` files (one in `./.env` and one in `./backend/.env`
+Create a `.env` file:
 ```
 NOTION_TOKEN=<notion api key>
 NOTION_DB_ID=<id of notion database>
-DATABASE_URL=<local db URL, ex. postgresql://postgres:postgres@localhost:5432/notion>
-PROD_DB_ADMIN_URL=<prod db url for the github action to connect to>
 OPENAI_API_KEY=<openai api key>
-FRONTEND_REPO_PAT=<github token with permissions to write into the frontend repo>
-CO_API_KEY=<cohere api keys>
-CLOUDFLARE_R2_BUCKET=<name of bucket>
-CLOUDFLARE_R2_ACCESS_KEY_ID=<access key id>
-CLOUDFLARE_SECRET_ACCESS_KEY=<secret access key>
-CLOUDFLARE_R2_URL=<url of bucket>
-R2_PUBLIC_URL=<custom domain name for images>
 ```
 
-Then run npm install in the root dir and `/backend`
-
-## Running locally
-
-### Knowledge Base
-
-To spin up a local PostgreSQL DB, I recommend Docker. This is the command I ran
-
+For the backend (in `./backend/.env`):
 ```
-docker run --name notion-postgres -e POSTGRES_DB=notion -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d pgvector/pgvector:pg16
+OPENAI_API_KEY=<openai api key>
+CO_API_KEY=<cohere api key>
 ```
 
-Then, to initialize our schema, we can run 
+## Running Locally
 
-```
-npx drizzle-kit migrate
-```
+### Sync Notion to PGlite
 
-We can get our data into the DB now by running
-
-```
+No Docker required! Simply run:
+```bash
 npm run sync
 ```
 
-We can also dump our PostgreSQL DB into SQLite by running
+This will:
+1. Fetch all articles from Notion
+2. Download images and store them as BLOBs
+3. Generate LLM descriptions and embeddings for each article
+4. Export to `db/notion.db.tar.gz`
 
+### Query the Database
+
+Interactive query tool with multiple modes:
+```bash
+npm run query
 ```
-npm run export
+
+Commands:
+- `/sql <query>` - Execute raw SQL
+- `/articles` - List all articles
+- `/stats` - Show database stats
+- `/ask <question>` - Hybrid search (vector + full-text) returning top 5 articles
+- `<text>` - RAG search with AI-generated answer
+- `/quit` - Exit
+
+Example:
+```
+> /ask What does Aditya do for fun?
+> /sql SELECT title, tags FROM article LIMIT 5
+> What has Aditya been working on?
 ```
 
 ### Backend Agent
 
-To get the backend running, run the following commands
-
-```
+To run the backend:
+```bash
 cd backend/
-docker compose-up --build
+docker compose up --build
 ```
 
-Now, we have to ensure our agent has access to the same PostgreSQL DB we have running locally, so we can copy the data with
-
-```
-npm run copy-pg -- \
-  --source=postgresql://postgres:postgres@localhost:5432/notion \
-  --dest=postgresql://postgres:postgres@localhost:5433/notion
+Test with:
+```bash
+curl -X POST http://localhost:3000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What does Aditya like to do?"}'
 ```
 
 ## Testing
 
-### Knowledge Base
-
-The knowledge base comes up with a query script to test the agent. You can run
-
-```
-npm run query
+Run all tests:
+```bash
+npm test
 ```
 
-And then input a question.
+## GitHub Actions
 
-### Backend Agent
-
-We can now test our backend agent by sending a curl command in another terminal
-
-```
-curl -X POST http://localhost:3000/ask \
-  -H "Content-Type: application/json" \
-  -d "{\"question\": \"<insert question>?\"}"
-```
+The sync workflow runs daily at 9 AM PST and can be triggered manually. It:
+1. Syncs Notion → PGlite
+2. Commits `db/notion.db.tar.gz` to this repo
+3. Pushes the database to the frontend repo
 
 
 

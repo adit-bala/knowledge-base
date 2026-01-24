@@ -32,18 +32,20 @@ vi.mock('openai', () => ({
     };
     chat = {
       completions: {
-        create: vi.fn().mockImplementation(
-          async (params: {
-            model: string;
-            messages: Array<{role: string; content: string}>;
-          }) => {
-            const userMessage = params.messages.find(m => m.role === 'user');
-            const titleMatch =
-              userMessage?.content.match(/Article Title: (.+)/);
-            const title = titleMatch ? titleMatch[1] : 'Unknown Article';
-            return createMockChatResponse(generateMockDescription(title));
-          },
-        ),
+        create: vi
+          .fn()
+          .mockImplementation(
+            async (params: {
+              model: string;
+              messages: Array<{role: string; content: string}>;
+            }) => {
+              const userMessage = params.messages.find(m => m.role === 'user');
+              const titleMatch =
+                userMessage?.content.match(/Article Title: (.+)/);
+              const title = titleMatch ? titleMatch[1] : 'Unknown Article';
+              return createMockChatResponse(generateMockDescription(title));
+            },
+          ),
       },
     };
   },

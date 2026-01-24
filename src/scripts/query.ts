@@ -32,13 +32,15 @@ async function main() {
   console.log('  /quit            - Exit');
   console.log('  <text>           - RAG search with AI answer\n');
 
-  while (true) {
+  let running = true;
+  while (running) {
     const input = await rl.question('> ');
     if (!input.trim()) continue;
 
     try {
       if (input.startsWith('/quit')) {
-        break;
+        running = false;
+        continue;
       } else if (input.startsWith('/ask ')) {
         // Hybrid search - returns top 5 articles without AI answer
         const question = input.slice(5).trim();
@@ -111,7 +113,9 @@ async function main() {
             `${i + 1}. ${r.title}${tags} (score: ${r.combined_score.toFixed(3)})`,
           );
           if (r.description) {
-            console.log(`   ${r.description.slice(0, 100)}${r.description.length > 100 ? '...' : ''}`);
+            console.log(
+              `   ${r.description.slice(0, 100)}${r.description.length > 100 ? '...' : ''}`,
+            );
           }
         });
         console.log();
@@ -178,7 +182,9 @@ async function main() {
 
         console.log('\n--- Top Results ---');
         rows.forEach((r, i) => {
-          console.log(`\n#${i + 1} [${r.title}] (score: ${r.score.toFixed(4)})`);
+          console.log(
+            `\n#${i + 1} [${r.title}] (score: ${r.score.toFixed(4)})`,
+          );
           console.log(r.content.slice(0, 200) + '...');
         });
 

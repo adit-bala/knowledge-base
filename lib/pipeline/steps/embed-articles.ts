@@ -138,7 +138,8 @@ export class EmbedArticlesStep extends PipelineStep<
     const maxContentLength = 40000;
     const content =
       article.markdown.length > maxContentLength
-        ? article.markdown.slice(0, maxContentLength) + '\n\n[Content truncated]'
+        ? article.markdown.slice(0, maxContentLength) +
+          '\n\n[Content truncated]'
         : article.markdown;
 
     const prompt = DESCRIPTION_PROMPT.replace('{title}', article.title).replace(

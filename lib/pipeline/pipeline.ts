@@ -35,17 +35,26 @@ export class SyncPipeline<
     this.diffResolver = diffResolver ?? new TimestampDiffResolver();
   }
 
-  /** Add a step to the appropriate phase based on step.phase */
-  addStep<TIn, TOut>(step: PipelineStep<TIn, TOut, TConfig>): this {
-    switch (step.phase) {
+  /**
+   * Add a step to the appropriate phase based on step.phase.
+   * The step's config type must be a subset of the pipeline's config type.
+   */
+  addStep<TIn, TOut, TStepConfig>(
+    step: TConfig extends TStepConfig
+      ? PipelineStep<TIn, TOut, TStepConfig>
+      : never,
+  ): this {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = step as any as PipelineStep<unknown, unknown, TConfig>;
+    switch (s.phase) {
       case 'fetch':
-        this.fetchSteps.push(step as PipelineStep<unknown, unknown, TConfig>);
+        this.fetchSteps.push(s);
         break;
       case 'update':
-        this.updateSteps.push(step as PipelineStep<unknown, unknown, TConfig>);
+        this.updateSteps.push(s);
         break;
       case 'upload':
-        this.uploadSteps.push(step as PipelineStep<unknown, unknown, TConfig>);
+        this.uploadSteps.push(s);
         break;
     }
     return this;

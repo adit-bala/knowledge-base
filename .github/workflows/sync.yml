@@ -9,20 +9,6 @@ jobs:
   sync:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: ankane/pgvector:latest
-        env:
-          POSTGRES_DB: notion
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports: [ '5432:5432' ]
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -33,77 +19,43 @@ jobs:
 
       - run: npm ci --legacy-peer-deps
 
-      - name: Run drizzle-kit migrations
+      - name: Sync Notion → PGlite
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
-        run: |
-          psql "$DATABASE_URL" -c "CREATE EXTENSION IF NOT EXISTS vector;"
-          npx drizzle-kit migrate
-
-      - name: Sync Notion → Postgres
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
-          NOTION_TOKEN:  ${{ secrets.NOTION_TOKEN }}
-          NOTION_DB_ID:  ${{ secrets.NOTION_DB_ID }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CLOUDFLARE_AUTH_TOKEN: ${{ secrets.CLOUDFLARE_AUTH_TOKEN }}
-          CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
-          CLOUDFLARE_R2_URL: ${{ secrets.CLOUDFLARE_R2_URL }}
-          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
-          CLOUDFLARE_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
-          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
         run: npm run sync
 
-      # Install PostgreSQL CLI tools required by the copy-postgres script
-      - name: Install PostgreSQL client tools
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      # Copy data from the workflow's Postgres service to the Raspberry Pi Postgres instance
-      - name: Copy data to production Postgres
-        env:
-          SOURCE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
-          DEST_DATABASE_URL: ${{ secrets.PROD_DB_ADMIN_URL }}
-        run: npx tsx src/scripts/copy-postgres.ts --source="$SOURCE_DATABASE_URL" --dest="$DEST_DATABASE_URL"
-
-      - name: Run SQLite migrations
-        run: npx drizzle-kit migrate --config=drizzle.sqlite.config.ts
-
-      - name: Export Postgres article table to SQLite DB
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notion
-        run: npm run export
-
-     
-      - name: Commit SQLite DB
+      - name: Commit PGlite DB
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "adit-bala"
           git config --global user.email "aditbala@berkeley.edu"
-          git add db/notion.db
+          git add db/notion.db.tar.gz
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
             git commit -m "[automated] notion db sync"
             git push origin HEAD:${{ github.ref }}
           fi
+
       - name: Base64-encode DB
         run: |
-          base64 -w0 db/notion.db > db.b64
+          base64 -w0 db/notion.db.tar.gz > db.b64
           DB64=$(cat db.b64)
           printf '%s' "$DB64" >"$GITHUB_WORKSPACE/encoded.txt"
 
-      - name: commit db to frontend repo
+      - name: Commit DB to frontend repo
         env:
           GH_TOKEN: ${{ secrets.FRONTEND_REPO_PAT }}
         run: |
           SHA=$(curl -s -H "Authorization: bearer $GH_TOKEN" \
-            https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
+            https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db.tar.gz \
             | jq -r .sha 2>/dev/null || echo "")
 
           # Build the JSON payload without putting large content on the command line
           if [ -n "$SHA" ]; then
-            # --rawfile reads the entire file into the variable; only the small SHA and message are passed as args
             jq -n \
               --arg message "[automated] notion db sync" \
               --arg sha "$SHA" \
@@ -115,8 +67,8 @@ jobs:
               --rawfile content encoded.txt \
               '{"message": $message, "content": $content}' > payload.json
           fi
-          
+
           curl -X PUT -H "Authorization: bearer $GH_TOKEN" \
                -H "Content-Type: application/json" \
-               https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db \
+               https://api.github.com/repos/adit-bala/portfolio/contents/db/notion.db.tar.gz \
                -d @payload.json

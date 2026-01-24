@@ -1,1 +1,0 @@
-CREATE INDEX "content_search_index" ON "embedding" USING gin (to_tsvector('english', "content"));

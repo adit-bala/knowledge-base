@@ -36,7 +36,7 @@ export interface MockChatResponse {
  * This ensures consistent test results.
  */
 export function generateMockEmbedding(text: string): number[] {
-  const embedding = new Array(1536).fill(0);
+  const embedding = new Array(384).fill(0);
 
   // Generate deterministic values based on text hash
   let hash = 0;
@@ -47,7 +47,7 @@ export function generateMockEmbedding(text: string): number[] {
   }
 
   // Fill embedding with values derived from hash
-  for (let i = 0; i < 1536; i++) {
+  for (let i = 0; i < 384; i++) {
     const seed = hash + i;
     embedding[i] = Math.sin(seed) * 0.5;
   }
@@ -71,7 +71,7 @@ export function createMockEmbeddingResponse(
       embedding: generateMockEmbedding(text),
       index,
     })),
-    model: 'text-embedding-3-small',
+    model: 'all-MiniLM-L6-v2',
     usage: {
       prompt_tokens: inputArray.reduce((sum, t) => sum + t.length, 0),
       total_tokens: inputArray.reduce((sum, t) => sum + t.length, 0),

@@ -39,13 +39,14 @@ export const SCHEMA = `
   CREATE INDEX IF NOT EXISTS image_article_idx ON image(article_id);
 
   -- Embeddings table with HNSW index
+  -- Uses 384-dim vectors from all-MiniLM-L6-v2 (Transformers.js compatible)
   CREATE TABLE IF NOT EXISTS embedding (
     id SERIAL PRIMARY KEY,
     article_id TEXT NOT NULL REFERENCES article(id) ON DELETE CASCADE,
     chunk_idx INTEGER NOT NULL,
     content TEXT NOT NULL,
     content_hash TEXT NOT NULL,
-    embedding vector(1536) NOT NULL
+    embedding vector(384) NOT NULL
   );
 
   CREATE INDEX IF NOT EXISTS embedding_hnsw_idx 

@@ -3,16 +3,30 @@
  *
  * Instead of chunking articles, this step:
  * 1. Uses an LLM to generate a description and sample questions for each article
- * 2. Embeds that generated content for semantic search
+ * 2. Embeds that generated content using Transformers.js (all-MiniLM-L6-v2) for semantic search
  */
 
 import crypto from 'crypto';
 import OpenAI from 'openai';
+import {pipeline, type FeatureExtractionPipeline} from '@xenova/transformers';
 import type {OpenAIConfig} from '../config';
 import {PipelineStep} from '../step';
 import type {ProcessedArticle} from '../types';
 
 type Config = OpenAIConfig;
+
+// Singleton for the embedding pipeline
+let embeddingPipeline: FeatureExtractionPipeline | null = null;
+
+async function getEmbeddingPipeline(): Promise<FeatureExtractionPipeline> {
+  if (!embeddingPipeline) {
+    embeddingPipeline = await pipeline(
+      'feature-extraction',
+      'Xenova/all-MiniLM-L6-v2',
+    );
+  }
+  return embeddingPipeline;
+}
 
 const DESCRIPTION_PROMPT = `You are a helpful assistant that creates searchable descriptions for articles on Aditya's personal blog.
 
@@ -73,15 +87,16 @@ export class EmbedArticlesStep extends PipelineStep<
       return;
     }
 
-    const {
-      apiKey,
-      embeddingModel = 'text-embedding-3-small',
-      chatModel = 'gpt-4o-mini',
-    } = this.config.openai;
+    const {apiKey, chatModel = 'gpt-4o-mini'} = this.config.openai;
     const openai = new OpenAI({apiKey});
 
+    // Initialize embedding pipeline (Transformers.js)
+    this.log('Loading Transformers.js embedding model...');
+    const embedder = await getEmbeddingPipeline();
+    this.log('Embedding model loaded');
+
     for (const article of articles) {
-      await this.embedArticle(article, openai, chatModel, embeddingModel);
+      await this.embedArticle(article, openai, chatModel, embedder);
     }
 
     this.log(`Embedded ${articles.length} articles`);
@@ -91,7 +106,7 @@ export class EmbedArticlesStep extends PipelineStep<
     article: ProcessedArticle,
     openai: OpenAI,
     chatModel: string,
-    embeddingModel: string,
+    embedder: FeatureExtractionPipeline,
   ): Promise<void> {
     // Delete existing embeddings
     await this.db.query('DELETE FROM embedding WHERE article_id = $1', [
@@ -105,11 +120,13 @@ export class EmbedArticlesStep extends PipelineStep<
       chatModel,
     );
 
-    // Embed the generated content
-    const response = await openai.embeddings.create({
-      model: embeddingModel,
-      input: generatedContent,
+    // Embed the generated content using Transformers.js
+    const output = await embedder(generatedContent, {
+      pooling: 'mean',
+      normalize: true,
     });
+    // Convert to regular array
+    const embedding = Array.from(output.data as Float32Array);
 
     const contentHash = crypto
       .createHash('md5')
@@ -124,7 +141,7 @@ export class EmbedArticlesStep extends PipelineStep<
         0, // Single embedding per article now
         generatedContent,
         contentHash,
-        JSON.stringify(response.data[0].embedding),
+        JSON.stringify(embedding),
       ],
     );
   }

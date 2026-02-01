@@ -125,7 +125,7 @@ describe('EmbedArticlesStep', () => {
         0,
         'old content',
         'hash',
-        JSON.stringify(new Array(1536).fill(0)),
+        JSON.stringify(new Array(384).fill(0)),
       ],
     );
 

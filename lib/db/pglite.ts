@@ -118,7 +118,12 @@ export class PGliteDatabase {
   /** Dump database to a gzipped tarball */
   async dump(): Promise<Blob> {
     const file = await this.db.dumpDataDir('gzip');
-    return file instanceof Blob ? file : new Blob([await file.arrayBuffer()]);
+    // dumpDataDir returns Blob | File, both have arrayBuffer()
+    if (file instanceof Blob) {
+      return file;
+    }
+    // File extends Blob, so this handles File case
+    return new Blob([await (file as File).arrayBuffer()]);
   }
 
   /** Save dump to file */

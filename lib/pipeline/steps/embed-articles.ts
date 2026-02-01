@@ -8,7 +8,6 @@
 
 import crypto from 'crypto';
 import OpenAI from 'openai';
-import {pipeline, type FeatureExtractionPipeline} from '@xenova/transformers';
 import type {OpenAIConfig} from '../config';
 import {PipelineStep} from '../step';
 import type {ProcessedArticle} from '../types';
@@ -16,10 +15,11 @@ import type {ProcessedArticle} from '../types';
 type Config = OpenAIConfig;
 
 // Singleton for the embedding pipeline
-let embeddingPipeline: FeatureExtractionPipeline | null = null;
+let embeddingPipeline: any | null = null;
 
-async function getEmbeddingPipeline(): Promise<FeatureExtractionPipeline> {
+async function getEmbeddingPipeline(): Promise<any> {
   if (!embeddingPipeline) {
+    const {pipeline} = await import('@xenova/transformers');
     embeddingPipeline = await pipeline(
       'feature-extraction',
       'Xenova/all-MiniLM-L6-v2',
@@ -106,7 +106,7 @@ export class EmbedArticlesStep extends PipelineStep<
     article: ProcessedArticle,
     openai: OpenAI,
     chatModel: string,
-    embedder: FeatureExtractionPipeline,
+    embedder: any,
   ): Promise<void> {
     // Delete existing embeddings
     await this.db.query('DELETE FROM embedding WHERE article_id = $1', [
